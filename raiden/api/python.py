@@ -707,6 +707,44 @@ class RaidenAPI:
 
         return events
 
+    def get_raiden_events_payment_history_with_timestamps_v2(
+            self,
+            token_address: typing.TokenAddress = None,
+            target_address: typing.Address = None,
+            event_type: int = None,
+            limit: int = None,
+            offset: int = None,
+    ):
+        if token_address and not is_binary_address(token_address):
+            raise InvalidAddress(
+                'Expected binary address format for token in get_raiden_events_payment_history',
+            )
+
+        if target_address and not is_binary_address(target_address):
+            raise InvalidAddress(
+                'Expected binary address format for '
+                'target_address in get_raiden_events_payment_history',
+            )
+
+        token_network_identifier = None
+        if token_address:
+            token_network_identifier = views.get_token_network_identifier_by_token_address(
+                chain_state=views.state_from_raiden(self.raiden),
+                payment_network_id=self.raiden.default_registry.address,
+                token_address=token_address,
+            )
+
+        events = [
+            event
+            for event in self.raiden.wal.storage.get_payment_events(
+                event_type=event_type,
+                limit=limit,
+                offset=offset,
+            )
+        ]
+
+        return events
+
     def get_raiden_events_payment_history(
             self,
             token_address: typing.TokenAddress = None,

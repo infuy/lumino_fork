@@ -43,6 +43,7 @@ from raiden.api.v1.resources import (
     ConnectionsResource,
     PartnersResourceByTokenAddress,
     PaymentResource,
+    PaymentResourceV2,
     RaidenInternalEventsResource,
     RegisterTokenResource,
     TokensResource,
@@ -123,6 +124,25 @@ URLS_V1 = [
         '/connections',
         ConnectionsInfoResource,
     ),
+
+
+
+    (
+        '/paymentsV2',
+        PaymentResourceV2,
+    ),
+    (
+        '/paymentsV2/<hexaddress:token_address>',
+        PaymentResourceV2,
+        'token_paymentresourcev2',
+    ),
+    (
+        '/paymentsV2/<hexaddress:token_address>/<hexaddress:target_address>',
+        PaymentResourceV2,
+        'token_target_paymentresourcev2',
+    ),
+
+
     (
         '/payments',
         PaymentResource,
@@ -356,7 +376,7 @@ class APIServer(Runnable):
         restapi_setup_urls(
             flask_api_context,
             rest_api,
-            URLS_V1,
+            URLS_V1
         )
 
         self.config = config
@@ -895,6 +915,59 @@ class RestAPI:
 
             result.append(serialized_event.data)
         return api_response(result=result)
+
+    def get_raiden_events_payment_history_with_timestamps_v2(
+            self,
+            token_address: typing.TokenAddress = None,
+            target_address: typing.Address = None,
+            event_type : int = None,
+            limit: int = None,
+            offset: int = None,
+    ):
+        log.info(
+            'Getting payment history',
+            node=pex(self.raiden_api.address),
+            token_address=optional_address_to_string(token_address),
+            target_address=optional_address_to_string(target_address),
+            event_type = event_type,
+            limit=limit,
+            offset=offset,
+        )
+        try:
+            service_result = self.raiden_api.get_raiden_events_payment_history_with_timestamps_v2(
+                token_address=token_address,
+                target_address=target_address,
+                event_type=event_type,
+                limit=limit,
+                offset=offset,
+            )
+        except (InvalidNumberInput, InvalidAddress) as e:
+            return api_error(str(e), status_code=HTTPStatus.CONFLICT)
+
+        result = []
+        for event in service_result:
+            if isinstance(event.wrapped_event, EventPaymentSentSuccess):
+                serialized_event = self.sent_success_payment_schema.dump(event)
+            elif isinstance(event.wrapped_event, EventPaymentSentFailed):
+                serialized_event = self.failed_payment_schema.dump(event)
+            elif isinstance(event.wrapped_event, EventPaymentReceivedSuccess):
+                serialized_event = self.received_success_payment_schema.dump(event)
+            else:
+                log.warning(
+                    'Unexpected event',
+                    node=pex(self.raiden_api.address),
+                    unexpected_event=event.wrapped_event,
+                )
+
+            result.append(serialized_event.data)
+        return api_response(result=result)
+
+
+
+
+
+
+
 
     def get_raiden_internal_events_with_timestamps(self, limit, offset):
         return [
