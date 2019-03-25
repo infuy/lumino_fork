@@ -352,15 +352,15 @@ class SQLiteStorage:
         ]
         return result
 
-    def get_payment_events(self, event_type: int = None, limit: int = None, offset: int = None):
-        entries = self._query_payments_events(event_type, limit, offset)
+    def get_payment_events(self,  from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
+        entries = self._query_payments_events( from_date, to_date, event_type, limit, offset)
         result = [
             TimestampedEvent(self.serializer.deserialize(entry[0]), entry[1])
             for entry in entries
         ]
         return result
 
-    def _query_payments_events(self, event_type: int = None, limit: int = None, offset: int = None):
+    def _query_payments_events(self,  from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
         if limit is not None and (not isinstance(limit, int) or limit < 0):
             raise InvalidNumberInput('limit must be a positive integer')
 
@@ -378,7 +378,9 @@ class SQLiteStorage:
 	            state_events
             WHERE
 	            json_extract(state_events.data,
-	            '$._type') IN ({}) LIMIT ? OFFSET ?
+	            '$._type') IN ({}) 
+	        AND log_time BETWEEN ? and ?  
+	        LIMIT ? OFFSET ?
         """
 
         query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]))
@@ -387,7 +389,7 @@ class SQLiteStorage:
 
         cursor.execute(
             query,
-            (limit, offset),
+            (from_date, to_date, limit, offset),
         )
 
         return cursor.fetchall()

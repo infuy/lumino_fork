@@ -258,6 +258,8 @@ class PaymentResourceV2(BaseResource):
             self,
             token_address: typing.TokenAddress = None,
             target_address: typing.Address = None,
+            from_date: typing.LogTime = None,
+            to_date: typing.LogTime = None,
             event_type: int = None,
             limit: int = None,
             offset: int = None,
@@ -265,6 +267,8 @@ class PaymentResourceV2(BaseResource):
         return self.rest_api.get_raiden_events_payment_history_with_timestamps_v2(
             token_address=token_address,
             target_address=target_address,
+            from_date=from_date,
+            to_date=to_date,
             event_type=event_type,
             limit=limit,
             offset=offset,

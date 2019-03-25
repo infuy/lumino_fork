@@ -711,6 +711,8 @@ class RaidenAPI:
             self,
             token_address: typing.TokenAddress = None,
             target_address: typing.Address = None,
+            from_date: typing.LogTime = None,
+            to_date: typing.LogTime = None,
             event_type: int = None,
             limit: int = None,
             offset: int = None,
@@ -737,6 +739,8 @@ class RaidenAPI:
         events = [
             event
             for event in self.raiden.wal.storage.get_payment_events(
+                from_date=from_date,
+                to_date=to_date,
                 event_type=event_type,
                 limit=limit,
                 offset=offset,
