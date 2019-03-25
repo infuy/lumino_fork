@@ -10,6 +10,7 @@ from raiden.api.v1.encoding import (
     ConnectionsLeaveSchema,
     PaymentSchema,
     RaidenEventsRequestSchema,
+    RaidenEventsRequestSchemaV2,
 )
 from raiden.utils import typing
 
@@ -251,7 +252,7 @@ class PaymentResource(BaseResource):
 
 class PaymentResourceV2(BaseResource):
 
-    get_schema = RaidenEventsRequestSchema()
+    get_schema = RaidenEventsRequestSchemaV2()
 
     @use_kwargs(get_schema, locations=('query',))
     def get(

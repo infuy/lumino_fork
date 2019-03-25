@@ -135,6 +135,15 @@ class BlockchainEventsRequestSchema(BaseSchema):
 class RaidenEventsRequestSchema(BaseSchema):
     limit = fields.Integer(missing=None)
     offset = fields.Integer(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
+class RaidenEventsRequestSchemaV2(BaseSchema):
+    limit = fields.Integer(missing=None)
+    offset = fields.Integer(missing=None)
     event_type = fields.Integer(missing=None)
     from_date = fields.String(missing=None)
     to_date = fields.String(missing=None)
