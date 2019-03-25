@@ -371,6 +371,8 @@ class SQLiteStorage:
         offset = 0 if offset is None else offset
 
         event_type_result = self._get_event_type_query(event_type)
+        event_range_query = self._get_date_range_query(from_date, to_date)
+        tuple_for_execute = self._get_tuple_to_get_payments(from_date, to_date, limit, offset)
 
         query = """ SELECT
 	            data, log_time
@@ -378,18 +380,17 @@ class SQLiteStorage:
 	            state_events
             WHERE
 	            json_extract(state_events.data,
-	            '$._type') IN ({}) 
-	        AND log_time BETWEEN ? and ?  
+	            '$._type') IN ({})  {} 
 	        LIMIT ? OFFSET ?
         """
 
-        query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]))
+        query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]), event_range_query)
 
         cursor = self.conn.cursor()
 
         cursor.execute(
             query,
-            (from_date, to_date, limit, offset),
+            tuple_for_execute,
         )
 
         return cursor.fetchall()
@@ -408,6 +409,21 @@ class SQLiteStorage:
             event_type_result = [event_type_result[2]]
 
         return event_type_result
+
+    def _get_date_range_query(self, from_date, to_date):
+        date_range_result = " "
+        if from_date is not None and to_date is not None:
+            date_range_result = " AND log_time BETWEEN ? and ? "
+
+        return date_range_result
+
+    def _get_tuple_to_get_payments(self, from_date, to_date, limit, offset):
+        tuple_result = (limit, offset)
+
+        if from_date is not None and to_date is not None:
+            tuple_result = (from_date, to_date, limit, offset)
+
+        return tuple_result
 
     def get_events(self, limit: int = None, offset: int = None):
         entries = self._query_events(limit, offset)
