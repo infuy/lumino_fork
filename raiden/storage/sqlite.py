@@ -356,5 +356,68 @@ class SQLiteStorage:
         entries = self._query_events(limit, offset)
         return [self.serializer.deserialize(entry[0]) for entry in entries]
 
+    def get_dashboard_data(self, from_date, to_date):
+        graph_data = self._get_graph_data(from_date, to_date)
+        result = {
+            "graph_data": graph_data
+        }
+        return result
+
+    def _get_graph_data(self, from_date, to_date):
+        cursor = self.conn.cursor()
+
+        query = """
+        
+        SELECT
+            CASE
+		        json_extract(state_events.data,'$._type')
+		            WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN '1'
+		            WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN '2'
+		            WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN '3'
+	        END event_type_code,
+	        json_extract(state_events.data, '$._type') AS event_type_class_name,
+	        CASE
+		        json_extract(state_events.data,'$._type')
+		            WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN 'Payment Received'
+		            WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN 'Payment Sent Failed'
+		            WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN 'Payment Sent Success'
+	        END event_type_label,
+	        COUNT(json_extract(state_events.data, '$._type')) AS quantity,
+	        log_time,	                   
+	        STRFTIME("%m", log_time) AS month_of_year_code,
+	        CASE 
+	            STRFTIME("%m", log_time)
+	                WHEN '01' THEN 'JAN'
+	                WHEN '02' THEN 'FEB'
+	                WHEN '03' THEN 'MAR'
+	                WHEN '04' THEN 'APR'
+	                WHEN '05' THEN 'MAY'
+	                WHEN '06' THEN 'JUN'
+	                WHEN '07' THEN 'JUL'
+	                WHEN '08' THEN 'AUG'
+	                WHEN '09' THEN 'SET'
+	                WHEN '10' THEN 'OCT'
+	                WHEN '11' THEN 'NOV'
+	                WHEN '12' THEN 'DIC'
+	        END month_of_year_label 	     
+        FROM
+	        state_events
+        WHERE
+	        json_extract(state_events.data,
+	        '$._type') IN ('raiden.transfer.events.EventPaymentReceivedSuccess',	
+	        'raiden.transfer.events.EventPaymentSentSuccess')
+	    AND log_time BETWEEN ? AND ?
+        GROUP BY STRFTIME("%m", log_time), json_extract(state_events.data,'$._type')
+        
+        
+        """
+
+        cursor.execute(
+            query,
+            (from_date, to_date)
+        )
+
+        return cursor.fetchall()
+
     def __del__(self):
         self.conn.close()

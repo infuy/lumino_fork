@@ -283,6 +283,32 @@ class EventPaymentSentFailedSchema(BaseSchema):
         decoding_class = dict
 
 
+class DashboardLuminoSchema(BaseSchema):
+    from_date = fields.String(missing=None)
+    to_date = fields.String(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
+
+class DashboardDataResponseSchema(BaseSchema):
+    event_type_code = fields.Integer()
+    event_type_class_name = fields.String()
+    event_type_label = fields.String()
+    quantity = fields.Integer()
+    log_time = fields.String()
+    month_of_year_code = fields.Integer()
+    month_of_year_label = fields.String()
+
+    class Meta:
+        fields = ('event_type_code', 'event_type_class_name', 'event_type_label', 'quantity', 'log_time',
+                  'month_of_year_code', 'month_of_year_label')
+        strict = True
+        decoding_class = dict
+
+
 class EventPaymentSentSuccessSchema(BaseSchema):
     block_number = fields.Integer()
     identifier = fields.Integer()

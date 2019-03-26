@@ -18,6 +18,7 @@ from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
+from raiden.api.objects import GraphItem
 
 from raiden.api.objects import AddressList, PartnersPerTokenList
 from raiden.api.v1.encoding import (
@@ -30,6 +31,7 @@ from raiden.api.v1.encoding import (
     InvalidEndpoint,
     PartnersPerTokenListSchema,
     PaymentSchema,
+    DashboardDataResponseSchema
 )
 from raiden.api.v1.resources import (
     AddressResource,
@@ -46,6 +48,7 @@ from raiden.api.v1.resources import (
     RaidenInternalEventsResource,
     RegisterTokenResource,
     TokensResource,
+    DashboardResource,
     create_blueprint,
 )
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
@@ -173,6 +176,10 @@ URLS_V1 = [
     (
         '/_debug/raiden_events',
         RaidenInternalEventsResource,
+    ),
+    (
+        '/dashboardLumino',
+        DashboardResource,
     ),
 ]
 
@@ -523,6 +530,7 @@ class RestAPI:
         self.sent_success_payment_schema = EventPaymentSentSuccessSchema()
         self.received_success_payment_schema = EventPaymentReceivedSuccessSchema()
         self.failed_payment_schema = EventPaymentSentFailedSchema()
+        self.dashboard_data_response_schema = DashboardDataResponseSchema()
 
     def get_our_address(self):
         return api_response(
@@ -895,6 +903,30 @@ class RestAPI:
 
             result.append(serialized_event.data)
         return api_response(result=result)
+
+    def get_dashboard_data(self, from_date, to_date):
+        result = self.raiden_api.get_dashboard_data(from_date, to_date)
+
+        result = self._map_data(result)
+
+        return api_response(result=result)
+
+    def _map_data(self, data_param):
+        graph_data = data_param["graph_data"]
+        result = {"graph_data": []}
+        for graph_item in graph_data:
+            graph_item_obj = GraphItem(graph_item[0],
+                                       graph_item[1],
+                                       graph_item[2],
+                                       graph_item[3],
+                                       graph_item[4],
+                                       graph_item[5],
+                                       graph_item[6])
+
+            graph_item_obj_serialized = self.dashboard_data_response_schema.dump(graph_item_obj)
+            result["graph_data"].append(graph_item_obj_serialized.data)
+
+        return result
 
     def get_raiden_internal_events_with_timestamps(self, limit, offset):
         return [
