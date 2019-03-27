@@ -18,7 +18,8 @@ from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
-from raiden.api.objects import GraphItem
+from raiden.api.objects import DashboardGraphItem
+from raiden.api.objects import DashboardTableItem
 
 from raiden.api.objects import AddressList, PartnersPerTokenList
 from raiden.api.v1.encoding import (
@@ -31,7 +32,8 @@ from raiden.api.v1.encoding import (
     InvalidEndpoint,
     PartnersPerTokenListSchema,
     PaymentSchema,
-    DashboardDataResponseSchema
+    DashboardDataResponseSchema,
+    DashboardDataResponseTableItemSchema
 )
 from raiden.api.v1.resources import (
     AddressResource,
@@ -531,6 +533,7 @@ class RestAPI:
         self.received_success_payment_schema = EventPaymentReceivedSuccessSchema()
         self.failed_payment_schema = EventPaymentSentFailedSchema()
         self.dashboard_data_response_schema = DashboardDataResponseSchema()
+        self.dashboard_data_response_table_item_schema = DashboardDataResponseTableItemSchema()
 
     def get_our_address(self):
         return api_response(
@@ -904,23 +907,62 @@ class RestAPI:
             result.append(serialized_event.data)
         return api_response(result=result)
 
-    def get_dashboard_data(self, from_date, to_date):
-        result = self.raiden_api.get_dashboard_data(from_date, to_date)
+    def get_dashboard_data(self, graph_from_date, graph_to_date, table_limit:int = None):
+        result = self.raiden_api.get_dashboard_data(graph_from_date, graph_to_date, table_limit)
 
         result = self._map_data(result)
 
         return api_response(result=result)
 
     def _map_data(self, data_param):
-        graph_data = data_param["graph_data"]
-        result = {"graph_data": [],
-                  "table_data": {
-                      "payments_received" : [],
-                      "payments_sent" : []
+        data_graph = data_param["data_graph"]
+        data_table = data_param["data_table"]
 
-                  }}
+        result = {"data_graph": self._map_data_graph(data_graph),
+                  "data_table": self._map_data_table(data_table)}
+
+        return result
+
+    def _map_data_table(self, table_data):
+        result = {"payments_received": [],
+                  "payments_sent": []}
+        payments_received = []
+        payments_sent = []
+        for key in table_data:
+            list_item = table_data[key]
+            for tuple_item in list_item:
+                table_item_serialized = self._get_dashboard_table_item_serialized(key, tuple_item[0], tuple_item[1])
+                if key == "payments_received":
+                    payments_received.append(table_item_serialized)
+                else:
+                    payments_sent.append(table_item_serialized)
+
+            result["payments_received"] = payments_received
+            result["payments_sent"] = payments_sent
+
+        return result
+
+    def _get_dashboard_table_item_serialized(self, event_type, log_time, data_param):
+        data = json.loads(data_param)
+        dashboard_table_item = DashboardTableItem()
+        dashboard_table_item.identifier = data["identifier"]
+        dashboard_table_item.log_time = log_time
+        dashboard_table_item.amount = data["amount"]
+
+        if event_type == "payments_received":
+            dashboard_table_item.initiator_address = data["initiator"]
+        else:
+            dashboard_table_item.target_address = data["target"]
+
+        table_payment_received_item_obj_serialized = self.dashboard_data_response_table_item_schema.dump(
+            dashboard_table_item)
+
+        return table_payment_received_item_obj_serialized.data
+
+    def _map_data_graph(self, graph_data):
+        result = []
         for graph_item in graph_data:
-            graph_item_obj = GraphItem(graph_item[0],
+            graph_item_obj = DashboardGraphItem(graph_item[0],
                                        graph_item[1],
                                        graph_item[2],
                                        graph_item[3],
@@ -929,8 +971,7 @@ class RestAPI:
                                        graph_item[6])
 
             graph_item_obj_serialized = self.dashboard_data_response_schema.dump(graph_item_obj)
-            result["graph_data"].append(graph_item_obj_serialized.data)
-
+            result.append(graph_item_obj_serialized.data)
         return result
 
     def get_raiden_internal_events_with_timestamps(self, limit, offset):

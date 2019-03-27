@@ -284,8 +284,9 @@ class EventPaymentSentFailedSchema(BaseSchema):
 
 
 class DashboardLuminoSchema(BaseSchema):
-    from_date = fields.String(missing=None)
-    to_date = fields.String(missing=None)
+    graph_from_date = fields.String(missing=None)
+    graph_to_date = fields.String(missing=None)
+    table_limit = fields.Integer(missing=None)
 
     class Meta:
         strict = True
@@ -305,6 +306,19 @@ class DashboardDataResponseSchema(BaseSchema):
     class Meta:
         fields = ('event_type_code', 'event_type_class_name', 'event_type_label', 'quantity', 'log_time',
                   'month_of_year_code', 'month_of_year_label')
+        strict = True
+        decoding_class = dict
+
+
+class DashboardDataResponseTableItemSchema(BaseSchema):
+    identifier = fields.String()
+    log_time = fields.String()
+    amount = fields.String()
+    initiator_address = fields.String()
+    target_address = fields.String()
+
+    class Meta:
+        fields = ('identifier', 'log_time', 'amount', 'initiator_address', 'target_address')
         strict = True
         decoding_class = dict
 

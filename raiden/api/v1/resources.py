@@ -256,11 +256,13 @@ class DashboardResource(BaseResource):
     @use_kwargs(get_schema, locations=('query',))
     def get(
             self,
-            from_date: typing.LogTime = None,
-            to_date: typing.LogTime = None,
+            graph_from_date: typing.LogTime = None,
+            graph_to_date: typing.LogTime = None,
+            table_limit: int = None
 
     ):
         return self.rest_api.get_dashboard_data(
-            from_date=from_date,
-            to_date=to_date
+            graph_from_date=graph_from_date,
+            graph_to_date=graph_to_date,
+            table_limit=table_limit
         )

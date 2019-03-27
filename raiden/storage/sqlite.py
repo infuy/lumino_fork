@@ -1,11 +1,13 @@
 import sqlite3
 import threading
+import datetime
 
 from raiden.constants import SQLITE_MIN_REQUIRED_VERSION
 from raiden.exceptions import InvalidDBData, InvalidNumberInput
 from raiden.storage.utils import DB_SCRIPT_CREATE_TABLES, TimestampedEvent
 from raiden.utils import get_system_spec
 from raiden.utils.typing import Any, Dict, NamedTuple, Optional, Tuple
+from dateutil.relativedelta import relativedelta
 
 # The latest DB version
 RAIDEN_DB_VERSION = 17
@@ -356,12 +358,63 @@ class SQLiteStorage:
         entries = self._query_events(limit, offset)
         return [self.serializer.deserialize(entry[0]) for entry in entries]
 
-    def get_dashboard_data(self, from_date, to_date):
-        graph_data = self._get_graph_data(from_date, to_date)
+    def get_dashboard_data(self, graph_from_date:int = None, graph_to_date:int = None, table_limit:int = None):
+        data_graph = self._get_graph_data(graph_from_date, graph_to_date)
+        data_table = self._get_table_data(table_limit)
         result = {
-            "graph_data": graph_data
+            "data_graph": data_graph,
+            "data_table": data_table
         }
         return result
+
+    def _get_table_data(self, limit: int = None):
+
+        if limit is not None and (not isinstance(limit, int) or limit < 0):
+            raise InvalidNumberInput('limit must be a positive integer')
+
+        limit = -1 if limit is None else limit
+
+        base_query = '''
+            
+            SELECT
+                log_time, 
+                data
+            FROM
+                state_events
+            WHERE
+                json_extract(state_events.data,
+                '$._type') IN ({})	
+            LIMIT ?	
+        
+        '''
+
+        payments_received = self._get_payments_event(base_query, limit, 1)
+        payments_sent = self._get_payments_event(base_query, limit, 3)
+
+        result = {
+            "payments_received": payments_received,
+            "payments_sent": payments_sent
+        }
+
+        return result
+
+    def _get_payments_event(self, base_query, limit:int = None, event_type:int = None):
+        cursor = self.conn.cursor()
+        query = base_query
+
+        if event_type == 1:
+            in_clause_value = ['raiden.transfer.events.EventPaymentReceivedSuccess']
+        elif event_type == 3:
+            in_clause_value = ['raiden.transfer.events.EventPaymentSentSuccess']
+
+        query = query.format(', '.join(['"{}"'.format(value) for value in in_clause_value]))
+
+        cursor.execute(
+            query,
+            (limit,),
+        )
+
+        return cursor.fetchall()
 
     def _get_graph_data(self, from_date, to_date):
         cursor = self.conn.cursor()
@@ -412,9 +465,21 @@ class SQLiteStorage:
         
         """
 
+        default_from_date = from_date
+        default_to_date = to_date
+        if from_date is None:
+            default_from_date = datetime.datetime.utcnow() - relativedelta(years=1)
+        if to_date is None:
+            default_to_date = datetime.datetime.utcnow()
+
+        if isinstance(default_from_date, datetime.datetime):
+            default_from_date = default_from_date.isoformat()
+        if isinstance(default_to_date, datetime.datetime):
+            default_to_date = default_to_date.isoformat()
+
         cursor.execute(
             query,
-            (from_date, to_date)
+            (default_from_date, default_to_date)
         )
 
         return cursor.fetchall()

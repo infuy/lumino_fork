@@ -32,7 +32,7 @@ class PartnersPerToken:
         self.channel = channel
 
 
-class GraphItem:
+class DashboardGraphItem:
     def __init__(self, event_type_code, event_type_class_name, event_type_label, quantity, log_time, month_of_year_code,
                  month_of_year_label):
         self.event_type_code = event_type_code
@@ -43,3 +43,10 @@ class GraphItem:
         self.month_of_year_code = month_of_year_code
         self.month_of_year_label = month_of_year_label
 
+
+class DashboardTableItem:
+    identifier = 0
+    log_time = ""
+    amount = 0
+    initiator_address = ""
+    target_address = ""

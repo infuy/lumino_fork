@@ -707,8 +707,8 @@ class RaidenAPI:
 
         return events
 
-    def get_dashboard_data(self, from_date, to_date):
-        result = self.raiden.wal.storage.get_dashboard_data(from_date, to_date)
+    def get_dashboard_data(self, graph_from_date, graph_to_date, table_limit:int = None):
+        result = self.raiden.wal.storage.get_dashboard_data(graph_from_date, graph_to_date, table_limit)
 
         return result
 
