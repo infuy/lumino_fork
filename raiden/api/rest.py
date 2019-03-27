@@ -913,7 +913,12 @@ class RestAPI:
 
     def _map_data(self, data_param):
         graph_data = data_param["graph_data"]
-        result = {"graph_data": []}
+        result = {"graph_data": [],
+                  "table_data": {
+                      "payments_received" : [],
+                      "payments_sent" : []
+
+                  }}
         for graph_item in graph_data:
             graph_item_obj = GraphItem(graph_item[0],
                                        graph_item[1],
