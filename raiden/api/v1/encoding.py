@@ -142,6 +142,8 @@ class RaidenEventsRequestSchema(BaseSchema):
         decoding_class = dict
 
 class RaidenEventsRequestSchemaV2(BaseSchema):
+    initiatior_address = fields.String(missing=None)
+    target_address = fields.String(missing=None)
     limit = fields.Integer(missing=None)
     offset = fields.Integer(missing=None)
     event_type = fields.Integer(missing=None)

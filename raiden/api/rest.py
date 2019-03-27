@@ -131,16 +131,7 @@ URLS_V1 = [
         '/paymentsV2',
         PaymentResourceV2,
     ),
-    (
-        '/paymentsV2/<hexaddress:token_address>',
-        PaymentResourceV2,
-        'token_paymentresourcev2',
-    ),
-    (
-        '/paymentsV2/<hexaddress:token_address>/<hexaddress:target_address>',
-        PaymentResourceV2,
-        'token_target_paymentresourcev2',
-    ),
+
 
 
     (
@@ -918,7 +909,7 @@ class RestAPI:
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
-            token_address: typing.TokenAddress = None,
+            initiatior_address: typing.Address = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
             to_date: typing.LogTime = None,
@@ -929,7 +920,7 @@ class RestAPI:
         log.info(
             'Getting payment history',
             node=pex(self.raiden_api.address),
-            token_address=optional_address_to_string(token_address),
+            initiatior_address=optional_address_to_string(initiatior_address),
             target_address=optional_address_to_string(target_address),
             from_date=from_date,
             to_date=to_date,
@@ -939,7 +930,7 @@ class RestAPI:
         )
         try:
             service_result = self.raiden_api.get_raiden_events_payment_history_with_timestamps_v2(
-                token_address=token_address,
+                initiatior_address=initiatior_address,
                 target_address=target_address,
                 from_date=from_date,
                 to_date=to_date,
@@ -966,14 +957,8 @@ class RestAPI:
                 )
 
             result.append(serialized_event.data)
+
         return api_response(result=result)
-
-
-
-
-
-
-
 
     def get_raiden_internal_events_with_timestamps(self, limit, offset):
         return [
