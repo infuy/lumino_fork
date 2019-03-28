@@ -141,6 +141,20 @@ class RaidenEventsRequestSchema(BaseSchema):
         # decoding to a dict is required by the @use_kwargs decorator from webargs
         decoding_class = dict
 
+class RaidenEventsRequestSchemaV2(BaseSchema):
+    initiatior_address = fields.String(missing=None)
+    target_address = fields.String(missing=None)
+    limit = fields.Integer(missing=None)
+    offset = fields.Integer(missing=None)
+    event_type = fields.Integer(missing=None)
+    from_date = fields.String(missing=None)
+    to_date = fields.String(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
 
 class AddressSchema(BaseSchema):
     address = AddressField()

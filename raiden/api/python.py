@@ -707,6 +707,32 @@ class RaidenAPI:
 
         return events
 
+    def get_raiden_events_payment_history_with_timestamps_v2(
+            self,
+            initiatior_address: typing.TokenAddress = None,
+            target_address: typing.Address = None,
+            from_date: typing.LogTime = None,
+            to_date: typing.LogTime = None,
+            event_type: int = None,
+            limit: int = None,
+            offset: int = None,
+    ):
+
+        events = [
+            event
+            for event in self.raiden.wal.storage.get_payment_events(
+                initiatior_address=initiatior_address,
+                target_address=target_address,
+                from_date=from_date,
+                to_date=to_date,
+                event_type=event_type,
+                limit=limit,
+                offset=offset,
+            )
+        ]
+
+        return events
+
     def get_raiden_events_payment_history(
             self,
             token_address: typing.TokenAddress = None,

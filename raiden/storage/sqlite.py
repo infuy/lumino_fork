@@ -352,6 +352,128 @@ class SQLiteStorage:
         ]
         return result
 
+    def get_payment_events(self,initiatior_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
+        entries = self._query_payments_events(initiatior_address,
+                                              target_address,
+                                              from_date,
+                                              to_date,
+                                              event_type,
+                                              limit,
+                                              offset)
+        result = [
+            TimestampedEvent(self.serializer.deserialize(entry[0]), entry[1])
+            for entry in entries
+        ]
+        return result
+
+    def _query_payments_events(self, initiatior_address,
+                               target_address,
+                               from_date,
+                               to_date,
+                               event_type: int = None,
+                               limit: int = None,
+                               offset: int = None):
+
+        if limit is not None and (not isinstance(limit, int) or limit < 0):
+            raise InvalidNumberInput('limit must be a positive integer')
+
+        if offset is not None and (not isinstance(offset, int) or offset < 0):
+            raise InvalidNumberInput('offset must be a positive integer')
+
+        limit = -1 if limit is None else limit
+        offset = 0 if offset is None else offset
+
+        tuple_for_execute = self._get_tuple_to_get_payments(initiatior_address, target_address, from_date, to_date, limit, offset)
+
+        query = self._get_query(initiatior_address, target_address, event_type, from_date, to_date)
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            query,
+            tuple_for_execute,
+        )
+
+        return cursor.fetchall()
+
+    def _get_query(self, initiatior_address, target_address, event_type, from_date, to_date):
+
+        if initiatior_address is not None:
+            query = """
+            
+            SELECT 
+                  data, 
+                  log_time 
+            FROM state_events 
+            WHERE json_extract(state_events.data, '$.initiator') = ? 
+            LIMIT ? OFFSET ?
+            
+            """
+        elif target_address is not None:
+            query ="""
+            
+            SELECT 
+                  data, 
+                  log_time 
+            FROM state_events 
+            WHERE json_extract(state_events.data, '$.target') = ? 
+            LIMIT ? OFFSET ?
+            
+            """
+        else:
+            query = """ 
+            
+            SELECT
+                data, 
+                log_time
+            FROM
+                state_events
+            WHERE
+                json_extract(state_events.data,
+                        '$._type') IN ({})  {} 
+            LIMIT ? OFFSET ?
+            
+                    """
+            event_type_result = self._get_event_type_query(event_type)
+            event_range_query = self._get_date_range_query(from_date, to_date)
+            query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]), event_range_query)
+
+        return query
+
+    def _get_event_type_query(self, event_type: int = None):
+
+        event_type_result = ['raiden.transfer.events.EventPaymentReceivedSuccess',
+                             'raiden.transfer.events.EventPaymentSentFailed',
+                             'raiden.transfer.events.EventPaymentSentSuccess']
+
+        if event_type == 1:
+            event_type_result = [event_type_result[0]]
+        elif event_type == 2:
+            event_type_result = [event_type_result[1]]
+        elif event_type == 3:
+            event_type_result = [event_type_result[2]]
+
+        return event_type_result
+
+    def _get_date_range_query(self, from_date, to_date):
+        date_range_result = " "
+        if from_date is not None and to_date is not None:
+            date_range_result = " AND log_time BETWEEN ? and ? "
+
+        return date_range_result
+
+    def _get_tuple_to_get_payments(self,initiatior_address, target_address, from_date, to_date, limit, offset):
+        tuple_result = (limit, offset)
+
+        if initiatior_address is not None:
+            tuple_result = (initiatior_address, limit, offset)
+        elif target_address is not None:
+            tuple_result = (target_address, limit, offset)
+        elif from_date is not None and to_date is not None:
+            tuple_result = (from_date, to_date, limit, offset)
+
+        return tuple_result
+
     def get_events(self, limit: int = None, offset: int = None):
         entries = self._query_events(limit, offset)
         return [self.serializer.deserialize(entry[0]) for entry in entries]
