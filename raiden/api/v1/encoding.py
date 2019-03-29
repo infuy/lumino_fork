@@ -71,14 +71,6 @@ class AddressField(fields.Field):
         return value
 
 
-class DataField(fields.Field):
-    def _serialize(self, value, attr, obj):
-        return data_encoder(value)
-
-    def _deserialize(self, value, attr, data):
-        return data_decoder(value)
-
-
 class BaseOpts(SchemaOpts):
     """
     This allows for having the Object the Schema encodes to inside of the class Meta
@@ -293,6 +285,57 @@ class EventPaymentSentFailedSchema(BaseSchema):
 
     class Meta:
         fields = ('block_number', 'event', 'reason', 'target', 'log_time')
+        strict = True
+        decoding_class = dict
+
+
+class DashboardLuminoSchema(BaseSchema):
+    graph_from_date = fields.String(missing=None)
+    graph_to_date = fields.String(missing=None)
+    table_limit = fields.Integer(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
+
+class DashboardDataResponseSchema(BaseSchema):
+    event_type_code = fields.Integer()
+    event_type_class_name = fields.String()
+    event_type_label = fields.String()
+    quantity = fields.Integer()
+    log_time = fields.String()
+    month_of_year_code = fields.Integer()
+    month_of_year_label = fields.String()
+
+    class Meta:
+        fields = ('event_type_code', 'event_type_class_name', 'event_type_label', 'quantity', 'log_time',
+                  'month_of_year_code', 'month_of_year_label')
+        strict = True
+        decoding_class = dict
+
+
+class DashboardDataResponseTableItemSchema(BaseSchema):
+    identifier = fields.String()
+    log_time = fields.String()
+    amount = fields.String()
+    initiator_address = fields.String()
+    target_address = fields.String()
+
+    class Meta:
+        fields = ('identifier', 'log_time', 'amount', 'initiator_address', 'target_address')
+        strict = True
+        decoding_class = dict
+
+
+class DashboardDataResponseGeneralItemSchema(BaseSchema):
+    event_type_code = fields.Integer()
+    event_type_class_name = fields.String()
+    quantity = fields.Integer()
+
+    class Meta:
+        fields = ('event_type_code', 'event_type_class_name', 'quantity')
         strict = True
         decoding_class = dict
 

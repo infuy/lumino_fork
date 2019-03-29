@@ -1,11 +1,13 @@
 import sqlite3
 import threading
+import datetime
 
 from raiden.constants import SQLITE_MIN_REQUIRED_VERSION
 from raiden.exceptions import InvalidDBData, InvalidNumberInput
 from raiden.storage.utils import DB_SCRIPT_CREATE_TABLES, TimestampedEvent
 from raiden.utils import get_system_spec
 from raiden.utils.typing import Any, Dict, NamedTuple, Optional, Tuple
+from dateutil.relativedelta import relativedelta
 
 # The latest DB version
 RAIDEN_DB_VERSION = 17
@@ -477,6 +479,200 @@ class SQLiteStorage:
     def get_events(self, limit: int = None, offset: int = None):
         entries = self._query_events(limit, offset)
         return [self.serializer.deserialize(entry[0]) for entry in entries]
+
+    def get_dashboard_data(self, graph_from_date:int = None, graph_to_date:int = None, table_limit:int = None):
+        data_graph = self._get_graph_data(graph_from_date, graph_to_date)
+        data_table = self._get_table_data(table_limit)
+        data_general_payments = self._get_general_data_payments()
+        result = {
+            "data_graph": data_graph,
+            "data_table": data_table,
+            "data_general_payments": data_general_payments
+        }
+        return result
+
+    def _get_general_data_payments(self):
+
+        query = """ 
+
+            SELECT
+                CASE
+                    {}
+                END event_type_code,
+                json_extract(state_events.data, '$._type') AS event_type_class_name,
+                COUNT(json_extract(state_events.data, '$._type')) AS quantity
+            FROM
+                state_events
+            WHERE
+                json_extract(state_events.data,'$._type') IN ({})
+            GROUP BY                
+                json_extract(state_events.data,'$._type')          
+
+        """
+
+        event_type_result = self._get_event_type_query()
+        case_type_event = self._get_sql_case_type_event_payment()
+        query = query.format(case_type_event, ', '.join(['"{}"'.format(value) for value in event_type_result]))
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            query
+        )
+
+        return cursor.fetchall()
+
+    def _get_sql_case_type_event_payment(self):
+        case_type_event = """
+        
+        json_extract(state_events.data,'$._type')
+                    WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN '1'
+                    WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN '2'
+                    WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN '3' 
+                    
+        """
+        return case_type_event
+
+    def _get_sql_case_type_label_event_type(self):
+        case_event_type_label = """        
+        
+        json_extract(state_events.data,'$._type')
+                    WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN 'Payment Received'
+                    WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN 'Payment Sent Failed'
+                    WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN 'Payment Sent Success'
+                    
+        """
+        return case_event_type_label
+
+    def _get_event_type_query(self, event_type: int = None):
+
+        event_type_result = ['raiden.transfer.events.EventPaymentReceivedSuccess',
+                             'raiden.transfer.events.EventPaymentSentFailed',
+                             'raiden.transfer.events.EventPaymentSentSuccess']
+
+        if event_type == 1:
+            event_type_result = [event_type_result[0]]
+        elif event_type == 2:
+            event_type_result = [event_type_result[1]]
+        elif event_type == 3:
+            event_type_result = [event_type_result[2]]
+
+        return event_type_result
+
+    def _get_table_data(self, limit: int = None):
+
+        if limit is not None and (not isinstance(limit, int) or limit < 0):
+            raise InvalidNumberInput('limit must be a positive integer')
+
+        limit = -1 if limit is None else limit
+
+        base_query = '''
+            
+            SELECT
+                log_time, 
+                data
+            FROM
+                state_events
+            WHERE
+                json_extract(state_events.data,
+                '$._type') IN ({})	
+            LIMIT ?	
+        
+        '''
+
+        payments_received = self._get_payments_event(base_query, limit, 1)
+        payments_sent = self._get_payments_event(base_query, limit, 3)
+
+        result = {
+            "payments_received": payments_received,
+            "payments_sent": payments_sent
+        }
+
+        return result
+
+    def _get_payments_event(self, base_query, limit:int = None, event_type:int = None):
+        cursor = self.conn.cursor()
+        query = base_query
+
+        if event_type == 1:
+            in_clause_value = ['raiden.transfer.events.EventPaymentReceivedSuccess']
+        elif event_type == 3:
+            in_clause_value = ['raiden.transfer.events.EventPaymentSentSuccess']
+
+        query = query.format(', '.join(['"{}"'.format(value) for value in in_clause_value]))
+
+        cursor.execute(
+            query,
+            (limit,),
+        )
+
+        return cursor.fetchall()
+
+    def _get_graph_data(self, from_date, to_date):
+        cursor = self.conn.cursor()
+
+        query = """
+        
+        SELECT
+            CASE
+		        {}
+	        END event_type_code,
+	        json_extract(state_events.data, '$._type') AS event_type_class_name,
+	        CASE
+		        {}
+	        END event_type_label,
+	        COUNT(json_extract(state_events.data, '$._type')) AS quantity,
+	        log_time,	                   
+	        STRFTIME("%m", log_time) AS month_of_year_code,
+	        CASE 
+	            STRFTIME("%m", log_time)
+	                WHEN '01' THEN 'JAN'
+	                WHEN '02' THEN 'FEB'
+	                WHEN '03' THEN 'MAR'
+	                WHEN '04' THEN 'APR'
+	                WHEN '05' THEN 'MAY'
+	                WHEN '06' THEN 'JUN'
+	                WHEN '07' THEN 'JUL'
+	                WHEN '08' THEN 'AUG'
+	                WHEN '09' THEN 'SET'
+	                WHEN '10' THEN 'OCT'
+	                WHEN '11' THEN 'NOV'
+	                WHEN '12' THEN 'DIC'
+	        END month_of_year_label 	     
+        FROM
+	        state_events
+        WHERE
+	        json_extract(state_events.data,
+	        '$._type') IN ({})
+	    AND log_time BETWEEN ? AND ?
+        GROUP BY STRFTIME("%m", log_time), json_extract(state_events.data,'$._type')
+        
+        
+        """
+        event_type_result = self._get_event_type_query()
+        case_type_event = self._get_sql_case_type_event_payment()
+        case_type_event_label = self._get_sql_case_type_label_event_type()
+        query = query.format(case_type_event, case_type_event_label,
+                             ', '.join(['"{}"'.format(value) for value in event_type_result]), )
+
+        default_from_date = from_date
+        default_to_date = to_date
+        if from_date is None:
+            default_from_date = datetime.datetime.utcnow() - relativedelta(years=1)
+        if to_date is None:
+            default_to_date = datetime.datetime.utcnow()
+
+        if isinstance(default_from_date, datetime.datetime):
+            default_from_date = default_from_date.isoformat()
+        if isinstance(default_to_date, datetime.datetime):
+            default_to_date = default_to_date.isoformat()
+
+        cursor.execute(
+            query,
+            (default_from_date, default_to_date)
+        )
+
+        return cursor.fetchall()
 
     def __del__(self):
         self.conn.close()

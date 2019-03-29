@@ -18,6 +18,9 @@ from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
+from raiden.api.objects import DashboardGraphItem
+from raiden.api.objects import DashboardTableItem
+from raiden.api.objects import DashboardGeneralItem
 
 from raiden.api.objects import AddressList, PartnersPerTokenList
 from raiden.api.v1.encoding import (
@@ -30,6 +33,9 @@ from raiden.api.v1.encoding import (
     InvalidEndpoint,
     PartnersPerTokenListSchema,
     PaymentSchema,
+    DashboardDataResponseSchema,
+    DashboardDataResponseTableItemSchema,
+    DashboardDataResponseGeneralItemSchema
 )
 from raiden.api.v1.resources import (
     AddressResource,
@@ -47,6 +53,7 @@ from raiden.api.v1.resources import (
     RaidenInternalEventsResource,
     RegisterTokenResource,
     TokensResource,
+    DashboardResource,
     create_blueprint,
 )
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
@@ -184,6 +191,10 @@ URLS_V1 = [
     (
         '/_debug/raiden_events',
         RaidenInternalEventsResource,
+    ),
+    (
+        '/dashboardLumino',
+        DashboardResource,
     ),
 ]
 
@@ -534,6 +545,9 @@ class RestAPI:
         self.sent_success_payment_schema = EventPaymentSentSuccessSchema()
         self.received_success_payment_schema = EventPaymentReceivedSuccessSchema()
         self.failed_payment_schema = EventPaymentSentFailedSchema()
+        self.dashboard_data_response_schema = DashboardDataResponseSchema()
+        self.dashboard_data_response_table_item_schema = DashboardDataResponseTableItemSchema()
+        self.dashboard_data_response_general_item_schema = DashboardDataResponseGeneralItemSchema()
 
     def get_our_address(self):
         return api_response(
@@ -906,6 +920,97 @@ class RestAPI:
 
             result.append(serialized_event.data)
         return api_response(result=result)
+
+    def get_dashboard_data(self, registry_address: typing.PaymentNetworkID, graph_from_date, graph_to_date, table_limit:int = None):
+        result = self.raiden_api.get_dashboard_data(graph_from_date, graph_to_date, table_limit)
+        token_list = self.raiden_api.get_tokens_list(registry_address)
+
+        result = self._map_data(result, token_list)
+
+        return api_response(result=result)
+
+    def _map_data(self, data_param, token_list):
+        data_graph = data_param["data_graph"]
+        data_table = data_param["data_table"]
+        data_general_payments = data_param["data_general_payments"]
+
+        result = {"data_graph": self._map_data_graph(data_graph),
+                  "data_table": self._map_data_table(data_table),
+                  "data_token": self._map_data_token(token_list),
+                  "data_general_payments": self._map_data_general_payments(data_general_payments)}
+
+        return result
+
+    def _map_data_general_payments(self, data_general_payments):
+        result = []
+        for general_item in data_general_payments:
+
+            general_item_obj = DashboardGeneralItem()
+            general_item_obj.event_type_code = general_item[0]
+            general_item_obj.event_type_class_name = general_item[1]
+            general_item_obj.quantity = general_item[2]
+
+            general_item_serialized = self.dashboard_data_response_general_item_schema.dump(general_item_obj)
+            result.append(general_item_serialized.data)
+
+        return result
+
+    def _map_data_token(self, token_list):
+        assert isinstance(token_list, list)
+        tokens_list = AddressList(token_list)
+        result = self.address_list_schema.dump(tokens_list)
+        return result.data
+
+    def _map_data_table(self, table_data):
+        result = {"payments_received": [],
+                  "payments_sent": []}
+        payments_received = []
+        payments_sent = []
+        for key in table_data:
+            list_item = table_data[key]
+            for tuple_item in list_item:
+                table_item_serialized = self._get_dashboard_table_item_serialized(key, tuple_item[0], tuple_item[1])
+                if key == "payments_received":
+                    payments_received.append(table_item_serialized)
+                else:
+                    payments_sent.append(table_item_serialized)
+
+            result["payments_received"] = payments_received
+            result["payments_sent"] = payments_sent
+
+        return result
+
+    def _get_dashboard_table_item_serialized(self, event_type, log_time, data_param):
+        data = json.loads(data_param)
+        dashboard_table_item = DashboardTableItem()
+        dashboard_table_item.identifier = data["identifier"]
+        dashboard_table_item.log_time = log_time
+        dashboard_table_item.amount = data["amount"]
+
+        if event_type == "payments_received":
+            dashboard_table_item.initiator_address = data["initiator"]
+        else:
+            dashboard_table_item.target_address = data["target"]
+
+        table_payment_received_item_obj_serialized = self.dashboard_data_response_table_item_schema.dump(
+            dashboard_table_item)
+
+        return table_payment_received_item_obj_serialized.data
+
+    def _map_data_graph(self, graph_data):
+        result = []
+        for graph_item in graph_data:
+            graph_item_obj = DashboardGraphItem(graph_item[0],
+                                       graph_item[1],
+                                       graph_item[2],
+                                       graph_item[3],
+                                       graph_item[4],
+                                       graph_item[5],
+                                       graph_item[6])
+
+            graph_item_obj_serialized = self.dashboard_data_response_schema.dump(graph_item_obj)
+            result.append(graph_item_obj_serialized.data)
+        return result
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
