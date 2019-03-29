@@ -55,7 +55,7 @@ from raiden.api.v1.resources import (
     TokensResource,
     DashboardResource,
     create_blueprint,
-)
+    NetworkResource)
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
 from raiden.exceptions import (
     AddressWithoutCode,
@@ -77,7 +77,7 @@ from raiden.exceptions import (
     TokenNotRegistered,
     TransactionThrew,
     UnknownTokenAddress,
-)
+    RaidenRecoverableError)
 from raiden.transfer import channel, views
 from raiden.transfer.events import (
     EventPaymentReceivedSuccess,
@@ -195,6 +195,11 @@ URLS_V1 = [
     (
         '/dashboardLumino',
         DashboardResource,
+    ),
+
+    (
+        '/network_graph/<hexaddress:token_network_address>',
+        NetworkResource,
     ),
 ]
 
@@ -1270,6 +1275,7 @@ class RestAPI:
                 status_code=HTTPStatus.CONFLICT,
             )
 
+
         updated_channel_state = self.raiden_api.get_channel(
             registry_address,
             channel_state.token_address,
@@ -1386,3 +1392,19 @@ class RestAPI:
                 status_code=HTTPStatus.BAD_REQUEST,
             )
         return result
+
+    def get_network_graph(self, token_network_address=None):
+        if token_network_address is None:
+            return api_error(
+                errors="Token network address must not be empty.",
+                status_code=HTTPStatus.BAD_REQUESTCONFLICT,
+            )
+
+        network_graph = self.raiden_api.get_network_graph(token_network_address)
+
+        if network_graph is None:
+            return api_error(
+                errors="Internal server error getting network_graph.",
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+        return api_response(result=network_graph.to_dict())
