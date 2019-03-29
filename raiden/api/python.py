@@ -850,3 +850,11 @@ class RaidenAPI:
             ))
         returned_events.sort(key=lambda evt: evt.get('block_number'), reverse=True)
         return returned_events
+
+    def get_network_graph(self, token_network_address):
+        chain_state = views.state_from_raiden(self.raiden)
+        token_network_state = views.get_token_network_by_identifier(
+            chain_state=chain_state,
+            token_network_id=token_network_address
+        )
+        return token_network_state.network_graph
