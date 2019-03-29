@@ -71,14 +71,6 @@ class AddressField(fields.Field):
         return value
 
 
-class DataField(fields.Field):
-    def _serialize(self, value, attr, obj):
-        return data_encoder(value)
-
-    def _deserialize(self, value, attr, data):
-        return data_decoder(value)
-
-
 class BaseOpts(SchemaOpts):
     """
     This allows for having the Object the Schema encodes to inside of the class Meta
@@ -319,6 +311,17 @@ class DashboardDataResponseTableItemSchema(BaseSchema):
 
     class Meta:
         fields = ('identifier', 'log_time', 'amount', 'initiator_address', 'target_address')
+        strict = True
+        decoding_class = dict
+
+
+class DashboardDataResponseGeneralItemSchema(BaseSchema):
+    event_type_code = fields.Integer()
+    event_type_class_name = fields.String()
+    quantity = fields.Integer()
+
+    class Meta:
+        fields = ('event_type_code', 'event_type_class_name', 'quantity')
         strict = True
         decoding_class = dict
 

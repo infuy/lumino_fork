@@ -361,11 +361,81 @@ class SQLiteStorage:
     def get_dashboard_data(self, graph_from_date:int = None, graph_to_date:int = None, table_limit:int = None):
         data_graph = self._get_graph_data(graph_from_date, graph_to_date)
         data_table = self._get_table_data(table_limit)
+        data_general_payments = self._get_general_data_payments()
         result = {
             "data_graph": data_graph,
-            "data_table": data_table
+            "data_table": data_table,
+            "data_general_payments": data_general_payments
         }
         return result
+
+    def _get_general_data_payments(self):
+
+        query = """ 
+
+            SELECT
+                CASE
+                    {}
+                END event_type_code,
+                json_extract(state_events.data, '$._type') AS event_type_class_name,
+                COUNT(json_extract(state_events.data, '$._type')) AS quantity
+            FROM
+                state_events
+            WHERE
+                json_extract(state_events.data,'$._type') IN ({})
+            GROUP BY                
+                json_extract(state_events.data,'$._type')          
+
+        """
+
+        event_type_result = self._get_event_type_query()
+        case_type_event = self._get_sql_case_type_event_payment()
+        query = query.format(case_type_event, ', '.join(['"{}"'.format(value) for value in event_type_result]))
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            query
+        )
+
+        return cursor.fetchall()
+
+    def _get_sql_case_type_event_payment(self):
+        case_type_event = """
+        
+        json_extract(state_events.data,'$._type')
+                    WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN '1'
+                    WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN '2'
+                    WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN '3' 
+                    
+        """
+        return case_type_event
+
+    def _get_sql_case_type_label_event_type(self):
+        case_event_type_label = """        
+        
+        json_extract(state_events.data,'$._type')
+                    WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN 'Payment Received'
+                    WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN 'Payment Sent Failed'
+                    WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN 'Payment Sent Success'
+                    
+        """
+        return case_event_type_label
+
+    def _get_event_type_query(self, event_type: int = None):
+
+        event_type_result = ['raiden.transfer.events.EventPaymentReceivedSuccess',
+                             'raiden.transfer.events.EventPaymentSentFailed',
+                             'raiden.transfer.events.EventPaymentSentSuccess']
+
+        if event_type == 1:
+            event_type_result = [event_type_result[0]]
+        elif event_type == 2:
+            event_type_result = [event_type_result[1]]
+        elif event_type == 3:
+            event_type_result = [event_type_result[2]]
+
+        return event_type_result
 
     def _get_table_data(self, limit: int = None):
 
@@ -423,17 +493,11 @@ class SQLiteStorage:
         
         SELECT
             CASE
-		        json_extract(state_events.data,'$._type')
-		            WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN '1'
-		            WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN '2'
-		            WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN '3'
+		        {}
 	        END event_type_code,
 	        json_extract(state_events.data, '$._type') AS event_type_class_name,
 	        CASE
-		        json_extract(state_events.data,'$._type')
-		            WHEN 'raiden.transfer.events.EventPaymentReceivedSuccess' THEN 'Payment Received'
-		            WHEN 'raiden.transfer.events.EventPaymentSentFailed' THEN 'Payment Sent Failed'
-		            WHEN 'raiden.transfer.events.EventPaymentSentSuccess' THEN 'Payment Sent Success'
+		        {}
 	        END event_type_label,
 	        COUNT(json_extract(state_events.data, '$._type')) AS quantity,
 	        log_time,	                   
@@ -457,13 +521,17 @@ class SQLiteStorage:
 	        state_events
         WHERE
 	        json_extract(state_events.data,
-	        '$._type') IN ('raiden.transfer.events.EventPaymentReceivedSuccess',	
-	        'raiden.transfer.events.EventPaymentSentSuccess')
+	        '$._type') IN ({})
 	    AND log_time BETWEEN ? AND ?
         GROUP BY STRFTIME("%m", log_time), json_extract(state_events.data,'$._type')
         
         
         """
+        event_type_result = self._get_event_type_query()
+        case_type_event = self._get_sql_case_type_event_payment()
+        case_type_event_label = self._get_sql_case_type_label_event_type()
+        query = query.format(case_type_event, case_type_event_label,
+                             ', '.join(['"{}"'.format(value) for value in event_type_result]), )
 
         default_from_date = from_date
         default_to_date = to_date

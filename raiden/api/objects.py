@@ -50,3 +50,9 @@ class DashboardTableItem:
     amount = 0
     initiator_address = ""
     target_address = ""
+
+
+class DashboardGeneralItem:
+    quantity = 0
+    event_type_code = 0
+    event_type_class_name = ""

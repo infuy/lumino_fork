@@ -262,6 +262,7 @@ class DashboardResource(BaseResource):
 
     ):
         return self.rest_api.get_dashboard_data(
+            self.rest_api.raiden_api.raiden.default_registry.address,
             graph_from_date=graph_from_date,
             graph_to_date=graph_to_date,
             table_limit=table_limit
