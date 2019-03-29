@@ -10,6 +10,7 @@ from raiden.api.v1.encoding import (
     ConnectionsLeaveSchema,
     PaymentSchema,
     RaidenEventsRequestSchema,
+    DashboardLuminoSchema,
     RaidenEventsRequestSchemaV2,
 )
 from raiden.utils import typing
@@ -248,8 +249,27 @@ class PaymentResource(BaseResource):
             amount=amount,
             identifier=identifier,
         )
+      
+      
+class DashboardResource(BaseResource):
+    get_schema = DashboardLuminoSchema()
 
+    @use_kwargs(get_schema, locations=('query',))
+    def get(
+            self,
+            graph_from_date: typing.LogTime = None,
+            graph_to_date: typing.LogTime = None,
+            table_limit: int = None
 
+    ):
+        return self.rest_api.get_dashboard_data(
+            self.rest_api.raiden_api.raiden.default_registry.address,
+            graph_from_date=graph_from_date,
+            graph_to_date=graph_to_date,
+            table_limit=table_limit
+        )
+
+    
 class PaymentResourceV2(BaseResource):
 
     get_schema = RaidenEventsRequestSchemaV2()

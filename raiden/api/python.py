@@ -707,6 +707,11 @@ class RaidenAPI:
 
         return events
 
+    def get_dashboard_data(self, graph_from_date, graph_to_date, table_limit:int = None):
+        result = self.raiden.wal.storage.get_dashboard_data(graph_from_date, graph_to_date, table_limit)
+
+        return result
+
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
             initiatior_address: typing.TokenAddress = None,
