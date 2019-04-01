@@ -1012,10 +1012,32 @@ class RestAPI:
                                        graph_item[4],
                                        graph_item[5],
                                        graph_item[6])
+            result.append(graph_item_obj)
 
-            graph_item_obj_serialized = self.dashboard_data_response_schema.dump(graph_item_obj)
-            result.append(graph_item_obj_serialized.data)
+        items_group_by_months = self._get_items_group_by_month(result)            
+        return items_group_by_months
+
+    def _get_items_group_by_month(self, data):
+        months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL','AUG', 'SET', 'OCT', 'NOV', 'DIC']
+
+        result = []
+        for month in months:
+            item = {}
+            events_by_month = self._get_events_group_by_month(month, data)
+            if len(events_by_month) > 0:
+                item["month_of_year_label"] = month
+            for event in events_by_month:
+                item[event.event_type_label] = event.quantity
+
+            if len (item) > 0:
+                result.append(item)
+
         return result
+
+
+    def _get_events_group_by_month(self, month, data):
+        return [dashboardItem for dashboardItem in data if dashboardItem.month_of_year_label == month]
+
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
@@ -1069,6 +1091,7 @@ class RestAPI:
             result.append(serialized_event.data)
 
         return api_response(result=result)
+
 
     def get_raiden_internal_events_with_timestamps(self, limit, offset):
         return [
