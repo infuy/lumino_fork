@@ -321,11 +321,11 @@ class DashboardDataResponseTableItemSchema(BaseSchema):
     identifier = fields.String()
     log_time = fields.String()
     amount = fields.String()
-    initiator_address = fields.String()
-    target_address = fields.String()
+    initiator = fields.String()
+    target = fields.String()
 
     class Meta:
-        fields = ('identifier', 'log_time', 'amount', 'initiator_address', 'target_address')
+        fields = ('identifier', 'log_time', 'amount', 'initiator', 'target')
         strict = True
         decoding_class = dict
 

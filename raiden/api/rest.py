@@ -131,16 +131,10 @@ URLS_V1 = [
         '/connections',
         ConnectionsInfoResource,
     ),
-
-
-
     (
         '/paymentsV2',
         PaymentResourceV2,
     ),
-
-
-
     (
         '/payments',
         PaymentResource,
@@ -993,9 +987,9 @@ class RestAPI:
         dashboard_table_item.amount = data["amount"]
 
         if event_type == "payments_received":
-            dashboard_table_item.initiator_address = data["initiator"]
+            dashboard_table_item.initiator = data["initiator"]
         else:
-            dashboard_table_item.target_address = data["target"]
+            dashboard_table_item.target = data["target"]
 
         table_payment_received_item_obj_serialized = self.dashboard_data_response_table_item_schema.dump(
             dashboard_table_item)

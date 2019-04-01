@@ -48,8 +48,8 @@ class DashboardTableItem:
     identifier = 0
     log_time = ""
     amount = 0
-    initiator_address = ""
-    target_address = ""
+    initiator = ""
+    target = ""
 
 
 class DashboardGeneralItem:
