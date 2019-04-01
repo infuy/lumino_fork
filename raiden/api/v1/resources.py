@@ -11,6 +11,7 @@ from raiden.api.v1.encoding import (
     PaymentSchema,
     RaidenEventsRequestSchema,
     DashboardLuminoSchema,
+    RaidenEventsRequestSchemaV2,
 )
 from raiden.utils import typing
 
@@ -248,8 +249,8 @@ class PaymentResource(BaseResource):
             amount=amount,
             identifier=identifier,
         )
-
-
+      
+      
 class DashboardResource(BaseResource):
     get_schema = DashboardLuminoSchema()
 
@@ -266,4 +267,30 @@ class DashboardResource(BaseResource):
             graph_from_date=graph_from_date,
             graph_to_date=graph_to_date,
             table_limit=table_limit
+        )
+
+    
+class PaymentResourceV2(BaseResource):
+
+    get_schema = RaidenEventsRequestSchemaV2()
+
+    @use_kwargs(get_schema, locations=('query',))
+    def get(
+            self,
+            initiatior_address: typing.Address = None,
+            target_address: typing.Address = None,
+            from_date: typing.LogTime = None,
+            to_date: typing.LogTime = None,
+            event_type: int = None,
+            limit: int = None,
+            offset: int = None,
+    ):
+        return self.rest_api.get_raiden_events_payment_history_with_timestamps_v2(
+            initiatior_address=initiatior_address,
+            target_address=target_address,
+            from_date=from_date,
+            to_date=to_date,
+            event_type=event_type,
+            limit=limit,
+            offset=offset,
         )
