@@ -49,7 +49,7 @@ from raiden.api.v1.resources import (
     ConnectionsResource,
     PartnersResourceByTokenAddress,
     PaymentResource,
-    # PaymentResourceV2,
+    PaymentResourceV2,
     RaidenInternalEventsResource,
     RegisterTokenResource,
     TokensResource,
@@ -134,10 +134,10 @@ URLS_V1 = [
 
 
 
-    # (
-    #     '/paymentsV2',
-    #     PaymentResourceV2,
-    # ),
+    (
+        '/paymentsV2',
+        PaymentResourceV2,
+    ),
 
 
 
