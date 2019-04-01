@@ -16,6 +16,8 @@ from flask_restful import Api, abort
 from gevent.pywsgi import WSGIServer
 from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
+from rns_constants import RNS_ADDRESS_ZERO
+from utils.rns import is_rns_address
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
 from raiden.api.objects import DashboardGraphItem
@@ -35,8 +37,9 @@ from raiden.api.v1.encoding import (
     PaymentSchema,
     DashboardDataResponseSchema,
     DashboardDataResponseTableItemSchema,
-    DashboardDataResponseGeneralItemSchema
-)
+    DashboardDataResponseGeneralItemSchema,
+    LuminoAddressConverter)
+
 from raiden.api.v1.resources import (
     AddressResource,
     BlockchainEventsNetworkResource,
@@ -49,13 +52,12 @@ from raiden.api.v1.resources import (
     ConnectionsResource,
     PartnersResourceByTokenAddress,
     PaymentResource,
-    PaymentResourceV2,
     RaidenInternalEventsResource,
     RegisterTokenResource,
     TokensResource,
     DashboardResource,
     create_blueprint,
-    NetworkResource)
+    NetworkResource, PaymentResourceV2)
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
 from raiden.exceptions import (
     AddressWithoutCode,
@@ -93,6 +95,11 @@ from raiden.utils import (
     typing,
 )
 from raiden.utils.runnable import Runnable
+
+from eth_utils import (
+    to_canonical_address
+)
+
 
 log = structlog.get_logger(__name__)
 
@@ -145,7 +152,7 @@ URLS_V1 = [
         'token_paymentresource',
     ),
     (
-        '/payments/<hexaddress:token_address>/<hexaddress:target_address>',
+        '/payments/<hexaddress:token_address>/<luminoaddress:target_address>',
         PaymentResource,
         'token_target_paymentresource',
     ),
@@ -371,6 +378,7 @@ class APIServer(Runnable):
             flask_app,
             {
                 'hexaddress': HexAddressConverter,
+                'luminoaddress': LuminoAddressConverter
             },
         )
 
@@ -1202,7 +1210,7 @@ class RestAPI:
             node=pex(self.raiden_api.address),
             registry_address=to_checksum_address(registry_address),
             token_address=to_checksum_address(token_address),
-            target_address=to_checksum_address(target_address),
+            target_address=target_address,
             amount=amount,
             payment_identifier=identifier,
         )
@@ -1211,6 +1219,14 @@ class RestAPI:
             identifier = create_default_identifier()
 
         try:
+            # First we check if the address received is an RNS address or a hexadecimal address
+            if is_rns_address(target_address):
+                rns_resolved_address = self.raiden_api.raiden.chain.get_address_from_rns(target_address)
+                if rns_resolved_address == RNS_ADDRESS_ZERO:
+                    raise InvalidAddress('Invalid RNS address. The domain isnt registered.')
+                else:
+                    target_address = to_canonical_address(rns_resolved_address)
+
             transfer_result = self.raiden_api.transfer(
                 registry_address=registry_address,
                 token_address=token_address,

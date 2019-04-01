@@ -606,7 +606,6 @@ class RaidenAPI:
     ):
         """ Do a transfer with `target` with the given `amount` of `token_address`. """
         # pylint: disable=too-many-arguments
-
         async_result = self.transfer_async(
             registry_address=registry_address,
             token_address=token_address,

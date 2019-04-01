@@ -2,6 +2,10 @@ import gevent
 from cachetools.func import ttl_cache
 from eth_utils import is_binary_address
 from gevent.lock import Semaphore
+from network.rpc.smartcontract_proxy import ContractProxy
+from ens import ENS
+from rns_constants import RNS_RESOLVER_ADDRESS, RNS_RESOLVER_ABI
+from web3 import Web3
 
 from raiden.network.proxies import (
     Discovery,
@@ -186,6 +190,13 @@ class BlockChainService:
 
         return self.address_to_secret_registry[address]
 
+    def get_address_from_rns(self, address=None) -> str:
+        contract = self.client.new_contract(RNS_RESOLVER_ABI, RNS_RESOLVER_ADDRESS)
+        proxy = ContractProxy(self.client, contract)
+        namehash = ENS.namehash(address)
+        resolved_address = proxy.contract.functions.addr(namehash).call()
+        return resolved_address
+
     def payment_channel(
             self,
             token_network_address: TokenNetworkAddress,
@@ -215,3 +226,5 @@ class BlockChainService:
     @ttl_cache(ttl=30)
     def network_id(self) -> int:
         return int(self.client.web3.version.network)
+
+

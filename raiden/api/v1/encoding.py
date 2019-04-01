@@ -5,6 +5,7 @@ from eth_utils import (
     to_checksum_address,
 )
 from marshmallow import Schema, SchemaOpts, fields, post_dump, post_load, pre_load
+from utils.rns import is_rns_address
 from webargs import validate
 from werkzeug.exceptions import NotFound
 from werkzeug.routing import BaseConverter
@@ -40,6 +41,24 @@ class HexAddressConverter(BaseConverter):
 
     def to_url(self, value):
         return to_checksum_address(value)
+
+
+class LuminoAddressConverter(BaseConverter):
+    def to_python(self, value):
+        if is_rns_address(value):
+            return value
+        if not is_0x_prefixed(value):
+            raise InvalidEndpoint('Not a valid hex address, 0x prefix missing.')
+
+        if not is_checksum_address(value):
+            raise InvalidEndpoint('Not a valid EIP55 encoded address.')
+
+        try:
+            value = to_canonical_address(value)
+        except ValueError:
+            raise InvalidEndpoint('Could not decode hex.')
+
+        return value
 
 
 class AddressField(fields.Field):

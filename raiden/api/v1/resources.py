@@ -253,7 +253,6 @@ class PaymentResource(BaseResource):
       
 class DashboardResource(BaseResource):
     get_schema = DashboardLuminoSchema()
-
     @use_kwargs(get_schema, locations=('query',))
     def get(
             self,
