@@ -12,6 +12,7 @@ from raiden.api.v1.encoding import (
     RaidenEventsRequestSchema,
     DashboardLuminoSchema,
     RaidenEventsRequestSchemaV2,
+    SearchLuminoRequestSchema,
 )
 from raiden.utils import typing
 
@@ -305,3 +306,19 @@ class NetworkResource(BaseResource):
 
     def get(self, token_network_address):
         return self.rest_api.get_network_graph(token_network_address)
+
+
+class SearchLuminoResource(BaseResource):
+
+    get_schema = SearchLuminoRequestSchema()
+
+    @use_kwargs(get_schema, locations=('query',))
+    def get(
+            self,
+            query: typing.ByteString = None,
+    ):
+        return self.rest_api.search_lumino(
+            self.rest_api.raiden_api.raiden.default_registry.address,
+            query=query,
+        )
+

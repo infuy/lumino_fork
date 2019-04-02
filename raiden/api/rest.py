@@ -57,7 +57,9 @@ from raiden.api.v1.resources import (
     TokensResource,
     DashboardResource,
     create_blueprint,
-    NetworkResource, PaymentResourceV2)
+    NetworkResource, PaymentResourceV2,
+    SearchLuminoResource)
+
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
 from raiden.exceptions import (
     AddressWithoutCode,
@@ -197,11 +199,15 @@ URLS_V1 = [
         '/dashboardLumino',
         DashboardResource,
     ),
-
     (
         '/network_graph/<hexaddress:token_network_address>',
         NetworkResource,
     ),
+    (
+        '/searchLumino',
+        SearchLuminoResource,
+    ),
+
 ]
 
 
@@ -1441,3 +1447,19 @@ class RestAPI:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
         return api_response(result=network_graph.to_dict())
+
+    def search_lumino(self, registry_address: typing.PaymentNetworkID, query=None):
+        if query is None:
+            return api_error(
+                errors="Query param must not be empty.",
+                status_code=HTTPStatus.BAD_REQUESTCONFLICT,
+            )
+
+        search_result = self.raiden_api.search_lumino(registry_address, query)
+
+        if search_result is None:
+            return api_error(
+                errors="Internal server error search_raiden.",
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+        return api_response(result=search_result.to_dict())

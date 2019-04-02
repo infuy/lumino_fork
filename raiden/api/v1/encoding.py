@@ -168,6 +168,15 @@ class RaidenEventsRequestSchemaV2(BaseSchema):
         decoding_class = dict
 
 
+class SearchLuminoRequestSchema(BaseSchema):
+    query = fields.String(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
+
 class AddressSchema(BaseSchema):
     address = AddressField()
 
