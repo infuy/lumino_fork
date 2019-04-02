@@ -1,4 +1,5 @@
 import structlog
+from asn1crypto._ffi import null
 from eth_utils import is_binary_address, to_checksum_address
 
 import raiden.blockchain.events as blockchain_events
@@ -26,7 +27,7 @@ from raiden.transfer.events import (
     EventPaymentSentFailed,
     EventPaymentSentSuccess,
 )
-from raiden.transfer.state import NettingChannelState
+from raiden.transfer.state import NettingChannelState, TokenNetworkGraphState
 from raiden.transfer.state_change import ActionChannelClose
 from raiden.utils import pex, typing
 from raiden.utils.gas_reserve import has_enough_gas_reserve
@@ -858,3 +859,31 @@ class RaidenAPI:
             token_network_id=token_network_address
         )
         return token_network_state.network_graph
+
+    def search_lumino(self, registry_address: typing.PaymentNetworkID, query):
+
+        node_addresses = []
+        token_addresses = []
+        channel_identifiers = []
+
+        token_list = self.get_tokens_list(registry_address)
+
+        for token in token_list:
+            token_addresses.append("0x" + token.hex())
+
+        chain_state = views.state_from_raiden(self.raiden)
+
+        for payment_network in chain_state.identifiers_to_paymentnetworks.values():
+            for token_network in payment_network.tokenidentifiers_to_tokennetworks.values():
+
+                nodes = token_network.network_graph.network.nodes._nodes
+                for key, value in nodes.items():
+                    node_addresses.append("0x" + key.hex())
+
+                channels = token_network.channelidentifiers_to_channels.values()
+                for channel in channels:
+                    channel_identifiers.append(channel.identifier)
+
+        return {node_addresses : node_addresses,
+                token_addresses: token_addresses,
+                channel_identifiers: channel_identifiers}

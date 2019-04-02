@@ -133,6 +133,7 @@ class RaidenEventsRequestSchema(BaseSchema):
         # decoding to a dict is required by the @use_kwargs decorator from webargs
         decoding_class = dict
 
+
 class RaidenEventsRequestSchemaV2(BaseSchema):
     initiatior_address = fields.String(missing=None)
     target_address = fields.String(missing=None)
@@ -141,6 +142,15 @@ class RaidenEventsRequestSchemaV2(BaseSchema):
     event_type = fields.Integer(missing=None)
     from_date = fields.String(missing=None)
     to_date = fields.String(missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs
+        decoding_class = dict
+
+
+class SearchLuminoRequestSchema(BaseSchema):
+    query = fields.String(missing=None)
 
     class Meta:
         strict = True
@@ -320,11 +330,11 @@ class DashboardDataResponseTableItemSchema(BaseSchema):
     identifier = fields.String()
     log_time = fields.String()
     amount = fields.String()
-    initiator_address = fields.String()
-    target_address = fields.String()
+    initiator = fields.String()
+    target = fields.String()
 
     class Meta:
-        fields = ('identifier', 'log_time', 'amount', 'initiator_address', 'target_address')
+        fields = ('identifier', 'log_time', 'amount', 'initiator', 'target')
         strict = True
         decoding_class = dict
 
