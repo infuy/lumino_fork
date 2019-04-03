@@ -2,9 +2,9 @@ import gevent
 from cachetools.func import ttl_cache
 from eth_utils import is_binary_address
 from gevent.lock import Semaphore
-from network.rpc.smartcontract_proxy import ContractProxy
+from raiden.network.rpc.smartcontract_proxy import ContractProxy
 from ens import ENS
-from rns_constants import RNS_RESOLVER_ADDRESS, RNS_RESOLVER_ABI
+from raiden.rns_constants import RNS_RESOLVER_ADDRESS, RNS_RESOLVER_ABI
 from web3 import Web3
 
 from raiden.network.proxies import (

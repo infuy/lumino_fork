@@ -316,9 +316,11 @@ class SearchLuminoResource(BaseResource):
     def get(
             self,
             query: typing.ByteString = None,
+            only_receivers: bool = None
     ):
         return self.rest_api.search_lumino(
             self.rest_api.raiden_api.raiden.default_registry.address,
             query=query,
+            only_receivers=only_receivers
         )
 

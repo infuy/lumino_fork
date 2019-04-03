@@ -3,6 +3,7 @@ from asn1crypto._ffi import null
 from eth_utils import is_binary_address, to_checksum_address
 
 import raiden.blockchain.events as blockchain_events
+import re
 from raiden import waiting
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
 from raiden.exceptions import (
@@ -31,6 +32,9 @@ from raiden.transfer.state import NettingChannelState, TokenNetworkGraphState
 from raiden.transfer.state_change import ActionChannelClose
 from raiden.utils import pex, typing
 from raiden.utils.gas_reserve import has_enough_gas_reserve
+
+from raiden.rns_constants import RNS_ADDRESS_ZERO
+from raiden.utils.rns import is_rns_address
 
 log = structlog.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -859,30 +863,88 @@ class RaidenAPI:
         )
         return token_network_state.network_graph
 
-    def search_lumino(self, registry_address: typing.PaymentNetworkID, query):
+    def search_lumino(self, registry_address: typing.PaymentNetworkID, query, only_receivers):
 
-        node_addresses = []
-        token_addresses = []
-        channel_identifiers = []
-
-        token_list = self.get_tokens_list(registry_address)
-
-        for token in token_list:
-            token_addresses.append("0x" + token.hex())
+        channel_identifiers_by_token_network = []
+        node_addresses_by_token_network = []
+        token_addresses = self._get_token_addresses_for_search(registry_address)
 
         chain_state = views.state_from_raiden(self.raiden)
 
         for payment_network in chain_state.identifiers_to_paymentnetworks.values():
             for token_network in payment_network.tokenidentifiers_to_tokennetworks.values():
+                node_addresses = self._get_node_addresses_for_search(token_network)
+                if len(node_addresses) > 0:
+                    node_addresses_by_token_network.append(node_addresses)
+                channel_identifiers = self._get_channel_identifiers_for_search(token_network)
+                if len(channel_identifiers) > 0:
+                    channel_identifiers_by_token_network.append(channel_identifiers)
 
-                nodes = token_network.network_graph.network.nodes._nodes
-                for key, value in nodes.items():
-                    node_addresses.append("0x" + key.hex())
+        result_search = self._search_in(channel_identifiers_by_token_network, node_addresses_by_token_network, token_addresses, query, only_receivers)
 
-                channels = token_network.channelidentifiers_to_channels.values()
-                for channel in channels:
-                    channel_identifiers.append(channel.identifier)
+        # First we check if the address received is an RNS address or a hexadecimal address
+        if is_rns_address(query):
+            rns_resolved_address = self.raiden.chain.get_address_from_rns(query)
+            if rns_resolved_address != RNS_ADDRESS_ZERO:
+                result_search["rns_address_matches"].append(rns_resolved_address)
 
-        return {node_addresses : node_addresses,
-                token_addresses: token_addresses,
-                channel_identifiers: channel_identifiers}
+        return {"results":result_search}
+
+    def _search_in(self, channel_identifiers, node_addresses, token_addresses, query, only_receivers):
+        result_search = {"token_address_matches": [],
+                         "node_address_matches": [],
+                         "channel_identifiers_matches": [],
+                         "rns_address_matches": []}
+
+        if only_receivers:
+            result_search["node_address_matches"] = self._get_matches_for_search(node_addresses, query)
+        else:
+            result_search["node_address_matches"] = self._get_matches_for_search(node_addresses, query)
+            result_search["channel_identifiers_matches"] = self._get_matches_for_search(channel_identifiers, query)
+            result_search["token_address_matches"] = self._get_matches_for_search(token_addresses, query)
+
+        return result_search
+
+    def _get_matches_for_search(self, data, query):
+        matches = []
+
+        if isinstance(data[0], list):
+            for data_token_network in data:
+                matches = self._match_in(data_token_network, query)
+        else:
+            matches = self._match_in(data, query)
+
+        return matches
+
+    def _match_in(self, data, query):
+        matches = []
+        for item in data:
+            if query in item:
+                matches.append(item)
+        return matches
+
+    def _get_channel_identifiers_for_search(self, token_network):
+        channel_identifiers = []
+        channels = token_network.channelidentifiers_to_channels.values()
+        for channel in channels:
+            channel_identifiers.append(str(channel.identifier))
+
+        return channel_identifiers
+
+    def _get_token_addresses_for_search(self, registry_address):
+        token_addresses = []
+        token_list = self.get_tokens_list(registry_address)
+
+        for token in token_list:
+            token_addresses.append("0x" + token.hex())
+
+        return token_addresses
+
+    def _get_node_addresses_for_search(self, token_network):
+        node_addresses = []
+        nodes = token_network.network_graph.channel_identifier_to_participants.values()
+        for node_address_tuple in nodes:
+            for address in node_address_tuple:
+                node_addresses.append("0x" + address.hex())
+
+        return node_addresses

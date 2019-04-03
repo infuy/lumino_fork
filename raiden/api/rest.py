@@ -16,8 +16,8 @@ from flask_restful import Api, abort
 from gevent.pywsgi import WSGIServer
 from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
-from rns_constants import RNS_ADDRESS_ZERO
-from utils.rns import is_rns_address
+from raiden.rns_constants import RNS_ADDRESS_ZERO
+from raiden.utils.rns import is_rns_address
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
 from raiden.api.objects import DashboardGraphItem
@@ -1448,18 +1448,18 @@ class RestAPI:
             )
         return api_response(result=network_graph.to_dict())
 
-    def search_lumino(self, registry_address: typing.PaymentNetworkID, query=None):
+    def search_lumino(self, registry_address: typing.PaymentNetworkID, query=None, only_receivers=None):
         if query is None:
             return api_error(
                 errors="Query param must not be empty.",
                 status_code=HTTPStatus.BAD_REQUESTCONFLICT,
             )
 
-        search_result = self.raiden_api.search_lumino(registry_address, query)
+        search_result = self.raiden_api.search_lumino(registry_address, query, only_receivers)
 
         if search_result is None:
             return api_error(
                 errors="Internal server error search_raiden.",
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
-        return api_response(result=search_result.to_dict())
+        return api_response(result=search_result)

@@ -5,7 +5,7 @@ from eth_utils import (
     to_checksum_address,
 )
 from marshmallow import Schema, SchemaOpts, fields, post_dump, post_load, pre_load
-from utils.rns import is_rns_address
+from raiden.utils.rns import is_rns_address
 from webargs import validate
 from werkzeug.exceptions import NotFound
 from werkzeug.routing import BaseConverter
@@ -170,6 +170,7 @@ class RaidenEventsRequestSchemaV2(BaseSchema):
 
 class SearchLuminoRequestSchema(BaseSchema):
     query = fields.String(missing=None)
+    only_receivers = fields.Boolean(missing=None)
 
     class Meta:
         strict = True
