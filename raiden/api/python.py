@@ -910,7 +910,11 @@ class RaidenAPI:
 
         if isinstance(data[0], list):
             for data_token_network in data:
-                matches = self._match_in(data_token_network, query)
+                match_in_result = self._match_in(data_token_network, query)
+                if len(match_in_result) > 0:
+                    matches.extend(match_in_result)
+            # Remove repeated elements
+            matches = list(dict.fromkeys(matches))
         else:
             matches = self._match_in(data, query)
 
