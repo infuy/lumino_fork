@@ -16,8 +16,8 @@ from flask_restful import Api, abort
 from gevent.pywsgi import WSGIServer
 from hexbytes import HexBytes
 from raiden_webui import RAIDEN_WEBUI_PATH
-from rns_constants import RNS_ADDRESS_ZERO
-from utils.rns import is_rns_address
+from raiden.rns_constants import RNS_ADDRESS_ZERO
+from raiden.utils.rns import is_rns_address
 from webargs.flaskparser import parser
 from werkzeug.exceptions import NotFound
 from raiden.api.objects import DashboardGraphItem
