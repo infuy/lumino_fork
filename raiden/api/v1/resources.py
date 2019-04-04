@@ -6,6 +6,7 @@ from raiden.api.v1.encoding import (
     BlockchainEventsRequestSchema,
     ChannelPatchSchema,
     ChannelPutSchema,
+    ChannelLuminoGetSchema,
     ConnectionsConnectSchema,
     ConnectionsLeaveSchema,
     PaymentSchema,
@@ -45,7 +46,7 @@ class ChannelsResource(BaseResource):
         this translates to 'get all channels the node is connected with'
         """
         return self.rest_api.get_channel_list(
-            self.rest_api.raiden_api.raiden.default_registry.address,
+            self.rest_api.raiden_api.raiden.default_registry.address
         )
 
     @use_kwargs(put_schema, locations=('json',))
@@ -53,6 +54,21 @@ class ChannelsResource(BaseResource):
         return self.rest_api.open(
             registry_address=self.rest_api.raiden_api.raiden.default_registry.address,
             **kwargs,
+        )
+
+
+class ChannelsResourceLumino(BaseResource):
+    get_schema = ChannelLuminoGetSchema
+
+    @use_kwargs(get_schema, locations=('query',))
+    def get(self,
+            token_addresses: typing.ByteString = None):
+        """
+        this translates to 'get the channels for the tokens and check if they can join'
+        """
+        return self.rest_api.get_channel_list_for_tokens(
+            self.rest_api.raiden_api.raiden.default_registry.address,
+            token_addresses=token_addresses
         )
 
 

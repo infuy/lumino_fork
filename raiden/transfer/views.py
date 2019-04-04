@@ -1,5 +1,7 @@
 from raiden.transfer import channel
 from raiden.transfer.architecture import ContractSendEvent
+from eth_utils import to_canonical_address
+
 from raiden.transfer.state import (
     CHANNEL_STATE_CLOSED,
     CHANNEL_STATE_CLOSING,
@@ -498,6 +500,33 @@ def list_channelstate_for_tokennetwork(
         result = []
 
     return result
+
+
+def list_channelstate_for_tokennetwork_lumino(
+        chain_state: ChainState,
+        payment_network_id: PaymentNetworkID,
+        token_addresses_split
+) -> List[NettingChannelState]:
+
+    channels_by_token = []
+
+    for token_address in token_addresses_split:
+        token_channels = {"token_address": "",
+                          "channels": []}
+        token_network = get_token_network_by_token_address(
+            chain_state,
+            payment_network_id,
+            to_canonical_address(token_address),
+        )
+        if token_network:
+            token_channels["token_address"] = token_address
+            token_channels["channels"] = list(token_network.channelidentifiers_to_channels.values())
+        else:
+            token_channels["token_address"] = token_address
+
+        channels_by_token.append(token_channels)
+
+    return channels_by_token
 
 
 def list_all_channelstate(chain_state: ChainState) -> List[NettingChannelState]:
