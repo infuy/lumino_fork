@@ -1,6 +1,6 @@
 import structlog
 from asn1crypto._ffi import null
-from eth_utils import is_binary_address, to_checksum_address
+from eth_utils import is_binary_address, to_checksum_address, to_canonical_address
 
 import raiden.blockchain.events as blockchain_events
 import re
@@ -580,6 +580,43 @@ class RaidenAPI:
             )
 
         return result
+
+    def get_channel_list_for_tokens(
+            self,
+            registry_address: typing.PaymentNetworkID,
+            token_addresses: typing.ByteString = None,
+    ) -> typing.List[NettingChannelState]:
+        """Returns a list of channels associated with the mandatory given
+           `token_addresses`.
+
+        Args:
+            token_addresses: an mandatory provided token list addresses
+
+        Return:
+            A list containing all channels the node participates, filtered by a token address
+
+        Raises:
+            KeyError: An error occurred when the token address is unknown to the node.
+        """
+        if registry_address and not is_binary_address(registry_address):
+            raise InvalidAddress('Expected binary address format for registry in get_channel_list')
+
+        token_addresses_split = token_addresses.split(",")
+        if isinstance(token_addresses_split, list):
+            for token_address in token_addresses_split:
+                self._check_token_address_format(to_canonical_address(token_address))
+
+            result = views.list_channelstate_for_tokennetwork_lumino(
+                chain_state=views.state_from_raiden(self.raiden),
+                payment_network_id=registry_address,
+                token_addresses_split=token_addresses_split,
+            )
+
+        return result
+
+    def _check_token_address_format(self, token_address):
+        if token_address and not is_binary_address(token_address):
+            raise InvalidAddress('Expected binary address format for token in get_channel_list')
 
     def get_node_network_state(self, node_address: typing.Address):
         """ Returns the currently network status of `node_address`. """

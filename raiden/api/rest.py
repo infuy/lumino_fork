@@ -46,6 +46,7 @@ from raiden.api.v1.resources import (
     BlockchainEventsTokenResource,
     ChannelBlockchainEventsResource,
     ChannelsResource,
+    ChannelsResourceLumino,
     ChannelsResourceByTokenAddress,
     ChannelsResourceByTokenAndPartnerAddress,
     ConnectionsInfoResource,
@@ -123,6 +124,10 @@ URLS_V1 = [
     (
         '/channels',
         ChannelsResource,
+    ),
+    (
+        '/channelsLumino',
+        ChannelsResourceLumino,
     ),
     (
         '/channels/<hexaddress:token_address>',
@@ -809,25 +814,48 @@ class RestAPI:
             self,
             registry_address: typing.PaymentNetworkID,
             token_address: typing.TokenAddress = None,
-            partner_address: typing.Address = None,
+            partner_address: typing.Address = None
     ):
         log.debug(
             'Getting channel list',
             node=pex(self.raiden_api.address),
             registry_address=to_checksum_address(registry_address),
             token_address=optional_address_to_string(token_address),
-            partner_address=optional_address_to_string(partner_address),
+            partner_address=optional_address_to_string(partner_address)
         )
         raiden_service_result = self.raiden_api.get_channel_list(
             registry_address,
             token_address,
-            partner_address,
+            partner_address
         )
         assert isinstance(raiden_service_result, list)
         result = [
             self.channel_schema.dump(channel_schema).data
             for channel_schema in raiden_service_result
         ]
+        return api_response(result=result)
+
+    def get_channel_list_for_tokens(
+            self,
+            registry_address: typing.PaymentNetworkID,
+            token_addresses: typing.ByteString = None
+    ):
+
+        result = self.raiden_api.get_channel_list_for_tokens(
+            registry_address,
+            token_addresses
+        )
+        for item in result:
+            assert isinstance(item["channels"], list)
+            parsed_channels = [
+                self.channel_schema.dump(channel_schema).data
+                for channel_schema in item["channels"]
+            ]
+            item["channels"] = parsed_channels
+            item["can_join"] = True
+            if len(parsed_channels) > 0:
+                item["can_join"] = False
+
         return api_response(result=result)
 
     def get_tokens_list(self, registry_address: typing.PaymentNetworkID):
@@ -1463,3 +1491,4 @@ class RestAPI:
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
         return api_response(result=search_result)
+

@@ -254,6 +254,13 @@ class ChannelPutSchema(BaseSchema):
         # decoding to a dict is required by the @use_kwargs decorator from webargs:
         decoding_class = dict
 
+class ChannelLuminoGetSchema(BaseSchema):
+    token_addresses = fields.String(required=True)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs:
+        decoding_class = dict
 
 class ChannelPatchSchema(BaseSchema):
     total_deposit = fields.Integer(default=None, missing=None)
