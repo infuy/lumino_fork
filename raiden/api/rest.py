@@ -706,6 +706,112 @@ class RestAPI:
             status_code=HTTPStatus.CREATED,
         )
 
+    def open_lumino(
+            self,
+            registry_address: typing.PaymentNetworkID,
+            partner_rns_address: typing.RnsAddress,
+            token_address: typing.TokenAddress,
+            settle_timeout: typing.BlockTimeout = None,
+            total_deposit: typing.TokenAmount = None,
+    ):
+        log.debug(
+            'Opening channel',
+            node=pex(self.raiden_api.address),
+            registry_address=to_checksum_address(registry_address),
+            partner_rns_address=partner_rns_address,
+            token_address=to_checksum_address(token_address),
+            settle_timeout=settle_timeout,
+        )
+        try:
+            token = self.raiden_api.raiden.chain.token(token_address)
+        except AddressWithoutCode as e:
+            return api_error(
+                errors=str(e),
+                status_code=HTTPStatus.CONFLICT,
+            )
+        balance = token.balance_of(self.raiden_api.raiden.address)
+
+        if total_deposit is not None and total_deposit > balance:
+            error_msg = 'Not enough balance to deposit. {} Available={} Needed={}'.format(
+                pex(token_address),
+                balance,
+                total_deposit,
+            )
+            return api_error(
+                errors=error_msg,
+                status_code=HTTPStatus.PAYMENT_REQUIRED,
+            )
+
+        # First we check if the address received is an RNS address and exists a Hex address
+        if is_rns_address(partner_rns_address):
+            rns_resolved_address = self.raiden_api.raiden.chain.get_address_from_rns(partner_rns_address)
+            if rns_resolved_address == RNS_ADDRESS_ZERO:
+                return api_error(
+                    errors=str('Hola mundo'),
+                    status_code=HTTPStatus.PAYMENT_REQUIRED,
+                )
+
+        try:
+            self.raiden_api.channel_open(
+                registry_address,
+                token_address,
+                to_canonical_address(rns_resolved_address),
+                settle_timeout,
+            )
+        except (InvalidAddress, InvalidSettleTimeout, SamePeerAddress,
+                AddressWithoutCode, DuplicatedChannelError, TokenNotRegistered) as e:
+            return api_error(
+                errors=str(e),
+                status_code=HTTPStatus.CONFLICT,
+            )
+        except (InsufficientFunds, InsufficientGasReserve) as e:
+            return api_error(
+                errors=str(e),
+                status_code=HTTPStatus.PAYMENT_REQUIRED,
+            )
+
+        if total_deposit:
+            # make initial deposit
+            log.debug(
+                'Depositing to new channel',
+                node=pex(self.raiden_api.address),
+                registry_address=to_checksum_address(registry_address),
+                token_address=to_checksum_address(token_address),
+                partner_rns_address=partner_rns_address,
+                total_deposit=total_deposit,
+            )
+            try:
+                self.raiden_api.set_total_channel_deposit(
+                    registry_address=registry_address,
+                    token_address=token_address,
+                    partner_rns_address=to_canonical_address(partner_rns_address),
+                    total_deposit=total_deposit,
+                )
+            except InsufficientFunds as e:
+                return api_error(
+                    errors=str(e),
+                    status_code=HTTPStatus.PAYMENT_REQUIRED,
+                )
+            except (DepositOverLimit, DepositMismatch) as e:
+                return api_error(
+                    errors=str(e),
+                    status_code=HTTPStatus.CONFLICT,
+                )
+
+        channel_state = views.get_channelstate_for(
+            views.state_from_raiden(self.raiden_api.raiden),
+            registry_address,
+            token_address,
+            to_canonical_address(rns_resolved_address),
+        )
+
+        result = self.channel_schema.dump(channel_state)
+
+        return api_response(
+            result=result.data,
+            status_code=HTTPStatus.CREATED,
+        )
+
     def connect(
             self,
             registry_address: typing.PaymentNetworkID,

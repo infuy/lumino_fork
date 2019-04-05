@@ -7,6 +7,7 @@ from raiden.api.v1.encoding import (
     ChannelPatchSchema,
     ChannelPutSchema,
     ChannelLuminoGetSchema,
+    ChannelPutLuminoSchema,
     ConnectionsConnectSchema,
     ConnectionsLeaveSchema,
     PaymentSchema,
@@ -59,6 +60,7 @@ class ChannelsResource(BaseResource):
 
 class ChannelsResourceLumino(BaseResource):
     get_schema = ChannelLuminoGetSchema
+    put_schema = ChannelPutLuminoSchema
 
     @use_kwargs(get_schema, locations=('query',))
     def get(self,
@@ -69,6 +71,13 @@ class ChannelsResourceLumino(BaseResource):
         return self.rest_api.get_channel_list_for_tokens(
             self.rest_api.raiden_api.raiden.default_registry.address,
             token_addresses=token_addresses
+        )
+
+    @use_kwargs(put_schema, locations=('json',))
+    def put(self, **kwargs):
+        return self.rest_api.open_lumino(
+            registry_address=self.rest_api.raiden_api.raiden.default_registry.address,
+            **kwargs,
         )
 
 

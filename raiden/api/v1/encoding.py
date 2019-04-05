@@ -61,6 +61,18 @@ class LuminoAddressConverter(BaseConverter):
         return value
 
 
+class AddressRnsField(fields.Field):
+    default_error_messages = {
+        'missing_dot': 'Not a valid rns domain address, must be dot. Example: test.test.eth',
+    }
+
+    def _deserialize(self, value, attr, data):
+        if not is_rns_address(value):
+            self.fail('missing_dot')
+
+        return value
+
+
 class AddressField(fields.Field):
     default_error_messages = {
         'missing_prefix': 'Not a valid hex encoded address, must be 0x prefixed.',
@@ -253,6 +265,19 @@ class ChannelPutSchema(BaseSchema):
         strict = True
         # decoding to a dict is required by the @use_kwargs decorator from webargs:
         decoding_class = dict
+
+
+class ChannelPutLuminoSchema(BaseSchema):
+    token_address = AddressField(required=True)
+    partner_rns_address = AddressRnsField(required=True)
+    settle_timeout = fields.Integer(missing=None)
+    total_deposit = fields.Integer(default=None, missing=None)
+
+    class Meta:
+        strict = True
+        # decoding to a dict is required by the @use_kwargs decorator from webargs:
+        decoding_class = dict
+
 
 class ChannelLuminoGetSchema(BaseSchema):
     token_addresses = fields.String(required=True)
