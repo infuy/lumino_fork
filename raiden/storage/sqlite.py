@@ -354,8 +354,8 @@ class SQLiteStorage:
         ]
         return result
 
-    def get_payment_events(self,initiatior_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
-        entries = self._query_payments_events(initiatior_address,
+    def get_payment_events(self,initiator_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
+        entries = self._query_payments_events(initiator_address,
                                               target_address,
                                               from_date,
                                               to_date,
@@ -368,7 +368,7 @@ class SQLiteStorage:
         ]
         return result
 
-    def _query_payments_events(self, initiatior_address,
+    def _query_payments_events(self, initiator_address,
                                target_address,
                                from_date,
                                to_date,
@@ -385,9 +385,9 @@ class SQLiteStorage:
         limit = -1 if limit is None else limit
         offset = 0 if offset is None else offset
 
-        tuple_for_execute = self._get_tuple_to_get_payments(initiatior_address, target_address, from_date, to_date, limit, offset)
+        tuple_for_execute = self._get_tuple_to_get_payments(initiator_address, target_address, from_date, to_date, limit, offset)
 
-        query = self._get_query(initiatior_address, target_address, event_type, from_date, to_date)
+        query = self._get_query(initiator_address, target_address, event_type, from_date, to_date)
 
         cursor = self.conn.cursor()
 
@@ -398,9 +398,9 @@ class SQLiteStorage:
 
         return cursor.fetchall()
 
-    def _get_query(self, initiatior_address, target_address, event_type, from_date, to_date):
+    def _get_query(self, initiator_address, target_address, event_type, from_date, to_date):
 
-        if initiatior_address is not None:
+        if initiator_address is not None:
             query = """
             
             SELECT 
@@ -461,18 +461,26 @@ class SQLiteStorage:
         date_range_result = " "
         if from_date is not None and to_date is not None:
             date_range_result = " AND log_time BETWEEN ? and ? "
+        elif from_date is not None and to_date is None:
+            date_range_result = " AND log_time >= ?"
+        elif to_date is not None and from_date is None:
+            date_range_result = " AND log_time <= ?"
 
         return date_range_result
 
-    def _get_tuple_to_get_payments(self,initiatior_address, target_address, from_date, to_date, limit, offset):
+    def _get_tuple_to_get_payments(self,initiator_address, target_address, from_date, to_date, limit, offset):
         tuple_result = (limit, offset)
 
-        if initiatior_address is not None:
-            tuple_result = (initiatior_address, limit, offset)
+        if initiator_address is not None:
+            tuple_result = (initiator_address, limit, offset)
         elif target_address is not None:
             tuple_result = (target_address, limit, offset)
         elif from_date is not None and to_date is not None:
             tuple_result = (from_date, to_date, limit, offset)
+        elif from_date is not None and to_date is None:
+            tuple_result = (from_date, limit, offset)
+        elif to_date is not None and from_date is None:
+            tuple_result = (to_date, limit, offset)
 
         return tuple_result
 

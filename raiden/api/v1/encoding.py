@@ -166,7 +166,7 @@ class RaidenEventsRequestSchema(BaseSchema):
 
 
 class RaidenEventsRequestSchemaV2(BaseSchema):
-    initiatior_address = fields.String(missing=None)
+    initiator_address = fields.String(missing=None)
     target_address = fields.String(missing=None)
     limit = fields.Integer(missing=None)
     offset = fields.Integer(missing=None)

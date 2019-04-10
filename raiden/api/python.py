@@ -844,7 +844,7 @@ class RaidenAPI:
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
-            initiatior_address: typing.TokenAddress = None,
+            initiator_address: typing.TokenAddress = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
             to_date: typing.LogTime = None,
@@ -856,7 +856,7 @@ class RaidenAPI:
         events = [
             event
             for event in self.raiden.wal.storage.get_payment_events(
-                initiatior_address=initiatior_address,
+                initiator_address=initiator_address,
                 target_address=target_address,
                 from_date=from_date,
                 to_date=to_date,

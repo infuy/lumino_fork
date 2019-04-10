@@ -295,14 +295,14 @@ class DashboardResource(BaseResource):
         )
 
     
-class PaymentResourceV2(BaseResource):
+class PaymentResourceLumino(BaseResource):
 
     get_schema = RaidenEventsRequestSchemaV2()
 
     @use_kwargs(get_schema, locations=('query',))
     def get(
             self,
-            initiatior_address: typing.Address = None,
+            initiator_address: typing.Address = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
             to_date: typing.LogTime = None,
@@ -311,7 +311,7 @@ class PaymentResourceV2(BaseResource):
             offset: int = None,
     ):
         return self.rest_api.get_raiden_events_payment_history_with_timestamps_v2(
-            initiatior_address=initiatior_address,
+            initiator_address=initiator_address,
             target_address=target_address,
             from_date=from_date,
             to_date=to_date,

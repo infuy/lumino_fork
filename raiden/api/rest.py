@@ -58,7 +58,7 @@ from raiden.api.v1.resources import (
     TokensResource,
     DashboardResource,
     create_blueprint,
-    NetworkResource, PaymentResourceV2,
+    NetworkResource, PaymentResourceLumino,
     SearchLuminoResource)
 
 from raiden.constants import GENESIS_BLOCK_NUMBER, Environment
@@ -146,8 +146,8 @@ URLS_V1 = [
         ConnectionsInfoResource,
     ),
     (
-        '/paymentsV2',
-        PaymentResourceV2,
+        '/paymentsLumino',
+        PaymentResourceLumino,
     ),
     (
         '/payments',
@@ -1183,7 +1183,7 @@ class RestAPI:
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
-            initiatior_address: typing.Address = None,
+            initiator_address: typing.Address = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
             to_date: typing.LogTime = None,
@@ -1194,7 +1194,7 @@ class RestAPI:
         log.info(
             'Getting payment history',
             node=pex(self.raiden_api.address),
-            initiatior_address=optional_address_to_string(initiatior_address),
+            initiator_address=optional_address_to_string(initiator_address),
             target_address=optional_address_to_string(target_address),
             from_date=from_date,
             to_date=to_date,
@@ -1204,7 +1204,7 @@ class RestAPI:
         )
         try:
             service_result = self.raiden_api.get_raiden_events_payment_history_with_timestamps_v2(
-                initiatior_address=initiatior_address,
+                initiator_address=initiator_address,
                 target_address=target_address,
                 from_date=from_date,
                 to_date=to_date,
