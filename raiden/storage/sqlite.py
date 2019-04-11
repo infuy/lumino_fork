@@ -354,8 +354,9 @@ class SQLiteStorage:
         ]
         return result
 
-    def get_payment_events(self,initiator_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
-        entries = self._query_payments_events(initiator_address,
+    def get_payment_events(self,our_address, initiator_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
+        entries = self._query_payments_events(our_address,
+                                              initiator_address,
                                               target_address,
                                               from_date,
                                               to_date,
@@ -368,7 +369,8 @@ class SQLiteStorage:
         ]
         return result
 
-    def _query_payments_events(self, initiator_address,
+    def _query_payments_events(self, our_address,
+                               initiator_address,
                                target_address,
                                from_date,
                                to_date,
@@ -385,9 +387,9 @@ class SQLiteStorage:
         limit = -1 if limit is None else limit
         offset = 0 if offset is None else offset
 
-        tuple_for_execute = self._get_tuple_to_get_payments(initiator_address, target_address, from_date, to_date, limit, offset)
+        tuple_for_execute = self._get_tuple_to_get_payments(our_address, initiator_address, target_address, from_date, to_date, limit, offset)
 
-        query = self._get_query(initiator_address, target_address, event_type, from_date, to_date)
+        query = self._get_query(our_address, initiator_address, target_address, event_type, from_date, to_date)
 
         cursor = self.conn.cursor()
 
@@ -398,30 +400,22 @@ class SQLiteStorage:
 
         return cursor.fetchall()
 
-    def _get_query(self, initiator_address, target_address, event_type, from_date, to_date):
+    def _get_query(self,our_address, initiator_address, target_address, event_type, from_date, to_date):
 
-        if initiator_address is not None:
-            query = """
-            
+        query_different_our_address = """
             SELECT 
                   data, 
                   log_time 
             FROM state_events 
-            WHERE json_extract(state_events.data, '$.initiator') = ? 
+            WHERE json_extract(state_events.data, '$.{}') = ? 
             LIMIT ? OFFSET ?
-            
-            """
-        elif target_address is not None:
-            query ="""
-            
-            SELECT 
-                  data, 
-                  log_time 
-            FROM state_events 
-            WHERE json_extract(state_events.data, '$.target') = ? 
-            LIMIT ? OFFSET ?
-            
-            """
+        
+        """
+
+        if initiator_address is not None and initiator_address.lower() != our_address.lower():
+            query = query_different_our_address.format('initiator')
+        elif target_address is not None and target_address.lower() != our_address.lower():
+            query = query_different_our_address.format('target')
         else:
             query = """ 
             
@@ -436,7 +430,14 @@ class SQLiteStorage:
             LIMIT ? OFFSET ?
             
                     """
+
             event_type_result = self._get_event_type_query(event_type)
+
+            if target_address is not None and target_address.lower() == our_address.lower():
+                event_type_result = self._get_event_type_query(1)
+            elif initiator_address is not None and initiator_address.lower() == our_address.lower():
+                event_type_result = self._get_event_type_query(3)
+
             event_range_query = self._get_date_range_query(from_date, to_date)
             query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]), event_range_query)
 
@@ -468,12 +469,12 @@ class SQLiteStorage:
 
         return date_range_result
 
-    def _get_tuple_to_get_payments(self,initiator_address, target_address, from_date, to_date, limit, offset):
+    def _get_tuple_to_get_payments(self, our_address, initiator_address, target_address, from_date, to_date, limit, offset):
         tuple_result = (limit, offset)
 
-        if initiator_address is not None:
+        if initiator_address is not None and initiator_address.lower() != our_address.lower():
             tuple_result = (initiator_address, limit, offset)
-        elif target_address is not None:
+        elif target_address is not None and target_address.lower() != our_address.lower():
             tuple_result = (target_address, limit, offset)
         elif from_date is not None and to_date is not None:
             tuple_result = (from_date, to_date, limit, offset)

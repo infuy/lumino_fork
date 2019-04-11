@@ -1,6 +1,6 @@
 import structlog
 from asn1crypto._ffi import null
-from eth_utils import is_binary_address, to_checksum_address, to_canonical_address
+from eth_utils import is_binary_address, to_checksum_address, to_canonical_address, to_normalized_address
 
 import raiden.blockchain.events as blockchain_events
 import re
@@ -856,6 +856,7 @@ class RaidenAPI:
         events = [
             event
             for event in self.raiden.wal.storage.get_payment_events(
+                our_address=to_normalized_address(self.raiden.address),
                 initiator_address=initiator_address,
                 target_address=target_address,
                 from_date=from_date,
