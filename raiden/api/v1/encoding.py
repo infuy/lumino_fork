@@ -166,6 +166,7 @@ class RaidenEventsRequestSchema(BaseSchema):
 
 
 class RaidenEventsRequestSchemaV2(BaseSchema):
+    token_network_identifier = fields.String(missing=None)
     initiator_address = fields.String(missing=None)
     target_address = fields.String(missing=None)
     limit = fields.Integer(missing=None)
@@ -338,6 +339,7 @@ class ConnectionsLeaveSchema(BaseSchema):
 
 
 class EventPaymentSentFailedSchema(BaseSchema):
+    token_network_identifier = AddressField()
     block_number = fields.Integer()
     identifier = fields.Integer()
     event = fields.Constant('EventPaymentSentFailed')
@@ -346,7 +348,7 @@ class EventPaymentSentFailedSchema(BaseSchema):
     log_time = fields.String()
 
     class Meta:
-        fields = ('block_number', 'event', 'reason', 'target', 'log_time')
+        fields = ('block_number', 'event', 'reason', 'target', 'log_time', 'token_network_identifier')
         strict = True
         decoding_class = dict
 
@@ -404,6 +406,7 @@ class DashboardDataResponseGeneralItemSchema(BaseSchema):
 
 class EventPaymentSentSuccessSchema(BaseSchema):
     block_number = fields.Integer()
+    token_network_identifier = AddressField()
     identifier = fields.Integer()
     event = fields.Constant('EventPaymentSentSuccess')
     amount = fields.Integer()
@@ -411,12 +414,13 @@ class EventPaymentSentSuccessSchema(BaseSchema):
     log_time = fields.String()
 
     class Meta:
-        fields = ('block_number', 'event', 'amount', 'target', 'identifier', 'log_time')
+        fields = ('block_number', 'event', 'amount', 'target', 'identifier', 'log_time', 'token_network_identifier')
         strict = True
         decoding_class = dict
 
 
 class EventPaymentReceivedSuccessSchema(BaseSchema):
+    token_network_identifier = AddressField()
     block_number = fields.Integer()
     identifier = fields.Integer()
     event = fields.Constant('EventPaymentReceivedSuccess')
@@ -425,6 +429,6 @@ class EventPaymentReceivedSuccessSchema(BaseSchema):
     log_time = fields.String()
 
     class Meta:
-        fields = ('block_number', 'event', 'amount', 'initiator', 'identifier', 'log_time')
+        fields = ('block_number', 'event', 'amount', 'initiator', 'identifier', 'log_time', 'token_network_identifier')
         strict = True
         decoding_class = dict

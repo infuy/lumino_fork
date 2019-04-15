@@ -1183,6 +1183,7 @@ class RestAPI:
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
+            token_network_identifier: typing.Address = None,
             initiator_address: typing.Address = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
@@ -1194,6 +1195,7 @@ class RestAPI:
         log.info(
             'Getting payment history',
             node=pex(self.raiden_api.address),
+            token_network_identifier=optional_address_to_string(token_network_identifier),
             initiator_address=optional_address_to_string(initiator_address),
             target_address=optional_address_to_string(target_address),
             from_date=from_date,
@@ -1204,6 +1206,7 @@ class RestAPI:
         )
         try:
             service_result = self.raiden_api.get_raiden_events_payment_history_with_timestamps_v2(
+                token_network_identifier=token_network_identifier,
                 initiator_address=initiator_address,
                 target_address=target_address,
                 from_date=from_date,

@@ -354,8 +354,19 @@ class SQLiteStorage:
         ]
         return result
 
-    def get_payment_events(self,our_address, initiator_address, target_address, from_date, to_date, event_type: int = None, limit: int = None, offset: int = None):
-        entries = self._query_payments_events(our_address,
+    def get_payment_events(self,
+                           token_network_identifier,
+                           our_address,
+                           initiator_address,
+                           target_address,
+                           from_date,
+                           to_date,
+                           event_type: int = None,
+                           limit: int = None,
+                           offset: int = None):
+
+        entries = self._query_payments_events(token_network_identifier,
+                                              our_address,
                                               initiator_address,
                                               target_address,
                                               from_date,
@@ -369,7 +380,9 @@ class SQLiteStorage:
         ]
         return result
 
-    def _query_payments_events(self, our_address,
+    def _query_payments_events(self,
+                               token_network_identifier,
+                               our_address,
                                initiator_address,
                                target_address,
                                from_date,
@@ -387,9 +400,22 @@ class SQLiteStorage:
         limit = -1 if limit is None else limit
         offset = 0 if offset is None else offset
 
-        tuple_for_execute = self._get_tuple_to_get_payments(our_address, initiator_address, target_address, from_date, to_date, limit, offset)
+        tuple_for_execute = self._get_tuple_to_get_payments(token_network_identifier,
+                                                            our_address,
+                                                            initiator_address,
+                                                            target_address,
+                                                            from_date,
+                                                            to_date,
+                                                            limit,
+                                                            offset)
 
-        query = self._get_query(our_address, initiator_address, target_address, event_type, from_date, to_date)
+        query = self._get_query(token_network_identifier,
+                                our_address,
+                                initiator_address,
+                                target_address,
+                                event_type,
+                                from_date,
+                                to_date)
 
         cursor = self.conn.cursor()
 
@@ -400,7 +426,7 @@ class SQLiteStorage:
 
         return cursor.fetchall()
 
-    def _get_query(self,our_address, initiator_address, target_address, event_type, from_date, to_date):
+    def _get_query(self, token_network_identifier, our_address, initiator_address, target_address, event_type, from_date, to_date):
 
         query_different_our_address = """
             SELECT 
@@ -426,7 +452,7 @@ class SQLiteStorage:
                 state_events
             WHERE
                 json_extract(state_events.data,
-                        '$._type') IN ({})  {} 
+                        '$._type') IN ({}) {}  {} 
             LIMIT ? OFFSET ?
             
                     """
@@ -438,10 +464,20 @@ class SQLiteStorage:
             elif initiator_address is not None and initiator_address.lower() == our_address.lower():
                 event_type_result = self._get_event_type_query(3)
 
+            token_network_identifier_result = self._get_token_network_identifier_query(token_network_identifier)
+
             event_range_query = self._get_date_range_query(from_date, to_date)
-            query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]), event_range_query)
+            query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]),
+                                 token_network_identifier_result,
+                                 event_range_query)
 
         return query
+
+    def _get_token_network_identifier_query(self, token_network_identifier):
+        result = " "
+        if token_network_identifier is not None:
+            result = " AND json_extract(state_events.data,'$.token_network_identifier') = ? "
+        return result
 
     def _get_event_type_query(self, event_type: int = None):
 
@@ -469,21 +505,33 @@ class SQLiteStorage:
 
         return date_range_result
 
-    def _get_tuple_to_get_payments(self, our_address, initiator_address, target_address, from_date, to_date, limit, offset):
-        tuple_result = (limit, offset)
+    def _get_tuple_to_get_payments(self,
+                                   token_network_identifier,
+                                   our_address,
+                                   initiator_address,
+                                   target_address,
+                                   from_date,
+                                   to_date,
+                                   limit,
+                                   offset):
+
+        result = [limit, offset]
 
         if initiator_address is not None and initiator_address.lower() != our_address.lower():
-            tuple_result = (initiator_address, limit, offset)
+            result.insert(0, initiator_address)
         elif target_address is not None and target_address.lower() != our_address.lower():
-            tuple_result = (target_address, limit, offset)
+            result.insert(0, target_address)
         elif from_date is not None and to_date is not None:
-            tuple_result = (from_date, to_date, limit, offset)
+            result.insert(0, to_date)
+            result.insert(0, from_date)
         elif from_date is not None and to_date is None:
-            tuple_result = (from_date, limit, offset)
+            result.insert(0, from_date)
         elif to_date is not None and from_date is None:
-            tuple_result = (to_date, limit, offset)
+            result.insert(0, to_date)
+        elif token_network_identifier is not None:
+            result.insert(0, token_network_identifier)
 
-        return tuple_result
+        return tuple(result)
 
     def get_events(self, limit: int = None, offset: int = None):
         entries = self._query_events(limit, offset)

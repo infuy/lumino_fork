@@ -844,6 +844,7 @@ class RaidenAPI:
 
     def get_raiden_events_payment_history_with_timestamps_v2(
             self,
+            token_network_identifier: typing.Address = None,
             initiator_address: typing.TokenAddress = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
@@ -856,6 +857,7 @@ class RaidenAPI:
         events = [
             event
             for event in self.raiden.wal.storage.get_payment_events(
+                token_network_identifier=token_network_identifier,
                 our_address=to_normalized_address(self.raiden.address),
                 initiator_address=initiator_address,
                 target_address=target_address,
@@ -1035,32 +1037,45 @@ class RaidenAPI:
     def _get_matches_for_search(self, data, query):
         matches = []
 
-        if isinstance(data[0], list):
-            for data_token_network in data:
-                match_in_result = self._match_in(data_token_network, query)
-                if len(match_in_result) > 0:
-                    matches.extend(match_in_result)
-            # Remove repeated elements
-            matches = list(dict.fromkeys(matches))
-        else:
-            matches = self._match_in(data, query)
+        if len(data) > 0:
+            if isinstance(data[0], list):
+                for data_token_network in data:
+                    match_in_result = self._match_in(data_token_network, query)
+                    if len(match_in_result) > 0:
+                        matches.extend(match_in_result)
+                # Remove repeated elements
+                if len(matches) > 0:
+                    if not isinstance(matches[0], dict):
+                        matches = list(dict.fromkeys(matches))
+            else:
+                matches = self._match_in(data, query)
 
         return matches
 
     def _match_in(self, data, query):
         matches = []
         for item in data:
-            if query in item:
-                matches.append(item)
+            if isinstance(item, dict):
+                for key, value in item.items():
+                    if query in value:
+                        matches.append(item)
+                # Remove duplicate dicts
+                matches = [dict(t) for t in {tuple(d.items()) for d in matches}]
+            else:
+                if query in item:
+                    matches.append(item)
         return matches
 
     def _get_channel_identifiers_for_search(self, token_network):
-        channel_identifiers = []
-        channels = token_network.channelidentifiers_to_channels.values()
-        for channel in channels:
-            channel_identifiers.append(str(channel.identifier))
+        channels = []
+        channels_objects = token_network.channelidentifiers_to_channels.values()
+        for channel in channels_objects:
+            channel_info = {"id": str(channel.identifier),
+                            "token_address": to_normalized_address(channel.token_address),
+                            "token_network_identifier":to_normalized_address(channel.token_network_identifier)}
+            channels.append(channel_info)
 
-        return channel_identifiers
+        return channels
 
     def _get_token_addresses_for_search(self, registry_address):
         token_addresses = []

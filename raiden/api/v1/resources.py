@@ -302,6 +302,7 @@ class PaymentResourceLumino(BaseResource):
     @use_kwargs(get_schema, locations=('query',))
     def get(
             self,
+            token_network_identifier: typing.Address = None,
             initiator_address: typing.Address = None,
             target_address: typing.Address = None,
             from_date: typing.LogTime = None,
@@ -311,6 +312,7 @@ class PaymentResourceLumino(BaseResource):
             offset: int = None,
     ):
         return self.rest_api.get_raiden_events_payment_history_with_timestamps_v2(
+            token_network_identifier=token_network_identifier,
             initiator_address=initiator_address,
             target_address=target_address,
             from_date=from_date,
