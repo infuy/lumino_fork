@@ -377,22 +377,11 @@ class SQLiteStorage:
                                               limit,
                                               offset)
 
-        # entries = self._add_extra_fields_in_query_payments_result(entries)
-
         result = [
             TimestampedEvent(self.serializer.deserialize(entry[0]), entry[1])
             for entry in entries
         ]
         return result
-
-    # def _add_extra_fields_in_query_payments_result(self, entries):
-    #     result = []
-    #     for entry in entries:
-    #         event = entry[0]
-    #         event = ast.literal_eval(event)
-    #         event['token_address'] = '0x0000000000000000000000000000000000000000000'
-    #         result.append((json.dumps(event), entry[1]))
-    #     return result
 
     def _query_payments_events(self,
                                token_network_identifier,
@@ -433,6 +422,9 @@ class SQLiteStorage:
 
         cursor = self.conn.cursor()
 
+        print(query)
+        print(tuple_for_execute)
+
         cursor.execute(
             query,
             tuple_for_execute,
@@ -442,22 +434,7 @@ class SQLiteStorage:
 
     def _get_query(self, token_network_identifier, our_address, initiator_address, target_address, event_type, from_date, to_date):
 
-        query_different_our_address = """
-            SELECT 
-                  data, 
-                  log_time 
-            FROM state_events 
-            WHERE json_extract(state_events.data, '$.{}') = ? 
-            LIMIT ? OFFSET ?
-        
-        """
-
-        if initiator_address is not None and initiator_address.lower() != our_address.lower():
-            query = query_different_our_address.format('initiator')
-        elif target_address is not None and target_address.lower() != our_address.lower():
-            query = query_different_our_address.format('target')
-        else:
-            query = """ 
+        query = """ 
             
             SELECT
                 data, 
@@ -466,26 +443,42 @@ class SQLiteStorage:
                 state_events
             WHERE
                 json_extract(state_events.data,
-                        '$._type') IN ({}) {}  {} 
+                        '$._type') IN ({}) {} {} {} {} 
             LIMIT ? OFFSET ?
             
                     """
 
-            event_type_result = self._get_event_type_query(event_type)
+        target_query = ""
+        initiator_query = ""
 
-            if target_address is not None and target_address.lower() == our_address.lower():
-                event_type_result = self._get_event_type_query(1)
-            elif initiator_address is not None and initiator_address.lower() == our_address.lower():
-                event_type_result = self._get_event_type_query(3)
+        event_type_result = self._get_event_type_query(event_type)
 
-            token_network_identifier_result = self._get_token_network_identifier_query(token_network_identifier)
+        if target_address is not None and target_address.lower() == our_address.lower():
+            event_type_result = self._get_event_type_query(1)
+        elif target_address is not None:
+            target_query = self._get_query_for_node_address('target')
 
-            event_range_query = self._get_date_range_query(from_date, to_date)
-            query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]),
-                                 token_network_identifier_result,
-                                 event_range_query)
+        if initiator_address is not None and initiator_address.lower() == our_address.lower():
+            event_type_result = self._get_event_type_query(3)
+        elif initiator_address is not None:
+            initiator_query = self._get_query_for_node_address('initiator')
+
+        token_network_identifier_result = self._get_token_network_identifier_query(token_network_identifier)
+
+        event_range_query = self._get_date_range_query(from_date, to_date)
+        query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]),
+                             token_network_identifier_result,
+                             event_range_query,
+                             target_query,
+                             initiator_query)
 
         return query
+
+    def _get_query_for_node_address(self, node_address_label):
+        result = " AND json_extract(state_events.data, '$.{}') = ? "
+        if node_address_label is not None:
+            result = result.format(node_address_label)
+        return result
 
     def _get_token_network_identifier_query(self, token_network_identifier):
         result = " "
@@ -533,16 +526,16 @@ class SQLiteStorage:
 
         if initiator_address is not None and initiator_address.lower() != our_address.lower():
             result.insert(0, initiator_address)
-        elif target_address is not None and target_address.lower() != our_address.lower():
+        if target_address is not None and target_address.lower() != our_address.lower():
             result.insert(0, target_address)
-        elif from_date is not None and to_date is not None:
+        if from_date is not None and to_date is not None:
             result.insert(0, to_date)
             result.insert(0, from_date)
-        elif from_date is not None and to_date is None:
+        if from_date is not None and to_date is None:
             result.insert(0, from_date)
-        elif to_date is not None and from_date is None:
+        if to_date is not None and from_date is None:
             result.insert(0, to_date)
-        elif token_network_identifier is not None:
+        if token_network_identifier is not None:
             result.insert(0, token_network_identifier)
 
         return tuple(result)

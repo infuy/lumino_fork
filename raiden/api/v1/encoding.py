@@ -437,16 +437,16 @@ class EventPaymentReceivedSuccessSchema(BaseSchema):
     amount = fields.Integer()
     initiator = AddressField()
     log_time = fields.String()
-    target = AddressField()
 
     class Meta:
-        fields = ('block_number',
+        fields = ('token_network_identifier',
+                  'token_address',
+                  'block_number',
+                  'identifier',
                   'event',
                   'amount',
-                  'target',
-                  'identifier',
-                  'log_time',
-                  'token_network_identifier',
-                  'token_address')
+                  'initiator',
+                  'log_time'
+                  )
         strict = True
         decoding_class = dict
