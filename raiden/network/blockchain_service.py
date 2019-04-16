@@ -24,6 +24,7 @@ from raiden.utils.typing import (
     TokenNetworkAddress,
 )
 from raiden_contracts.contract_manager import ContractManager
+from namehash import namehash
 
 
 class BlockChainService:
@@ -193,8 +194,8 @@ class BlockChainService:
     def get_address_from_rns(self, address=None) -> str:
         contract = self.client.new_contract(RNS_RESOLVER_ABI, RNS_RESOLVER_ADDRESS)
         proxy = ContractProxy(self.client, contract)
-        namehash = ENS.namehash(address)
-        resolved_address = proxy.contract.functions.addr(namehash).call()
+        eip137hash = namehash(address)
+        resolved_address = proxy.contract.functions.addr(eip137hash).call()
         return resolved_address
 
     def payment_channel(
