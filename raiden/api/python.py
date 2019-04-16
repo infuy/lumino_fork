@@ -1078,9 +1078,9 @@ class RaidenAPI:
         channels_objects = token_network.channelidentifiers_to_channels.values()
         for channel in channels_objects:
             channel_info = {"id": str(channel.identifier),
-                            "token_address": to_normalized_address(channel.token_address),
-                            "token_network_identifier":to_normalized_address(channel.token_network_identifier),
-                            "partner_address": to_normalized_address(channel.partner_state.address)}
+                            "token_address": to_checksum_address(channel.token_address),
+                            "token_network_identifier":to_checksum_address(channel.token_network_identifier),
+                            "partner_address": to_checksum_address(channel.partner_state.address)}
             channels.append(channel_info)
 
         return channels
@@ -1090,7 +1090,7 @@ class RaidenAPI:
         token_list = self.get_tokens_list(registry_address)
 
         for token in token_list:
-            token_addresses.append("0x" + token.hex())
+            token_addresses.append(to_checksum_address("0x" + token.hex()))
 
         return token_addresses
 
@@ -1099,6 +1099,6 @@ class RaidenAPI:
         nodes = token_network.network_graph.channel_identifier_to_participants.values()
         for node_address_tuple in nodes:
             for address in node_address_tuple:
-                node_addresses.append("0x" + address.hex())
+                node_addresses.append(to_checksum_address("0x" + address.hex()))
 
         return node_addresses
