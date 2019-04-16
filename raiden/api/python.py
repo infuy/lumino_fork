@@ -1079,7 +1079,8 @@ class RaidenAPI:
         for channel in channels_objects:
             channel_info = {"id": str(channel.identifier),
                             "token_address": to_normalized_address(channel.token_address),
-                            "token_network_identifier":to_normalized_address(channel.token_network_identifier)}
+                            "token_network_identifier":to_normalized_address(channel.token_network_identifier),
+                            "partner_address": to_normalized_address(channel.partner_state.address)}
             channels.append(channel_info)
 
         return channels
