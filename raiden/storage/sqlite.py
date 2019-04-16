@@ -1,6 +1,8 @@
 import sqlite3
 import threading
 import datetime
+import ast
+import json
 
 from raiden.constants import SQLITE_MIN_REQUIRED_VERSION
 from raiden.exceptions import InvalidDBData, InvalidNumberInput
@@ -374,11 +376,23 @@ class SQLiteStorage:
                                               event_type,
                                               limit,
                                               offset)
+
+        # entries = self._add_extra_fields_in_query_payments_result(entries)
+
         result = [
             TimestampedEvent(self.serializer.deserialize(entry[0]), entry[1])
             for entry in entries
         ]
         return result
+
+    # def _add_extra_fields_in_query_payments_result(self, entries):
+    #     result = []
+    #     for entry in entries:
+    #         event = entry[0]
+    #         event = ast.literal_eval(event)
+    #         event['token_address'] = '0x0000000000000000000000000000000000000000000'
+    #         result.append((json.dumps(event), entry[1]))
+    #     return result
 
     def _query_payments_events(self,
                                token_network_identifier,
