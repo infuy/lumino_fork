@@ -403,36 +403,38 @@ class SQLiteStorage:
         limit = -1 if limit is None else limit
         offset = 0 if offset is None else offset
 
-        tuple_for_execute = self._get_tuple_to_get_payments(token_network_identifier,
-                                                            our_address,
-                                                            initiator_address,
-                                                            target_address,
-                                                            from_date,
-                                                            to_date,
-                                                            limit,
-                                                            offset)
-
-        query = self._get_query(token_network_identifier,
-                                our_address,
-                                initiator_address,
-                                target_address,
-                                event_type,
-                                from_date,
-                                to_date)
+        query = self._get_query_with_values(token_network_identifier,
+                                            our_address,
+                                            initiator_address,
+                                            target_address,
+                                            event_type,
+                                            from_date,
+                                            to_date,
+                                            limit,
+                                            offset)
 
         cursor = self.conn.cursor()
 
-        print(query)
-        print(tuple_for_execute)
+        print(query[0])
+        print(query[1])
 
         cursor.execute(
-            query,
-            tuple_for_execute,
+            query[0],
+            query[1],
         )
 
         return cursor.fetchall()
 
-    def _get_query(self, token_network_identifier, our_address, initiator_address, target_address, event_type, from_date, to_date):
+    def _get_query_with_values(self,
+                               token_network_identifier,
+                               our_address,
+                               initiator_address,
+                               target_address,
+                               event_type,
+                               from_date,
+                               to_date,
+                               limit,
+                               offset):
 
         query = """ 
             
@@ -450,20 +452,22 @@ class SQLiteStorage:
 
         target_query = ""
         initiator_query = ""
+        or_conditional = False
 
         event_type_result = self._get_event_type_query(event_type)
+        token_network_identifier_result = self._get_token_network_identifier_query(token_network_identifier)
 
         if target_address is not None and target_address.lower() == our_address.lower():
             event_type_result = self._get_event_type_query(1)
         elif target_address is not None:
-            target_query = self._get_query_for_node_address('target')
+            target_query = self._get_query_for_node_address('target', or_conditional)
 
         if initiator_address is not None and initiator_address.lower() == our_address.lower():
             event_type_result = self._get_event_type_query(3)
         elif initiator_address is not None:
-            initiator_query = self._get_query_for_node_address('initiator')
-
-        token_network_identifier_result = self._get_token_network_identifier_query(token_network_identifier)
+            if target_address:
+                or_conditional = True
+            initiator_query = self._get_query_for_node_address('initiator', or_conditional)
 
         event_range_query = self._get_date_range_query(from_date, to_date)
         query = query.format(', '.join(['"{}"'.format(value) for value in event_type_result]),
@@ -472,10 +476,26 @@ class SQLiteStorage:
                              target_query,
                              initiator_query)
 
-        return query
+        tuple_for_execute = self._get_tuple_to_get_payments(token_network_identifier,
+                                                            our_address,
+                                                            initiator_address,
+                                                            target_address,
+                                                            from_date,
+                                                            to_date,
+                                                            limit,
+                                                            offset,
+                                                            or_conditional)
 
-    def _get_query_for_node_address(self, node_address_label):
+        return query, tuple_for_execute
+
+    def _get_query_for_node_address(self, node_address_label, or_contiional):
+
         result = " AND json_extract(state_events.data, '$.{}') = ? "
+
+        if or_contiional:
+            result = " OR json_extract(state_events.data, '$.{}') = ?  " \
+                     " AND json_extract(state_events.data, '$.token_network_identifier') = ?"
+
         if node_address_label is not None:
             result = result.format(node_address_label)
         return result
@@ -520,11 +540,14 @@ class SQLiteStorage:
                                    from_date,
                                    to_date,
                                    limit,
-                                   offset):
+                                   offset,
+                                   or_conditional):
 
         result = [limit, offset]
 
         if initiator_address is not None and initiator_address.lower() != our_address.lower():
+            if or_conditional:
+                result.insert(0, token_network_identifier)
             result.insert(0, initiator_address)
         if target_address is not None and target_address.lower() != our_address.lower():
             result.insert(0, target_address)
