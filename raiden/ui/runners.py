@@ -107,12 +107,19 @@ class NodeRunner:
         tasks = [app_.raiden]  # RaidenService takes care of Transport and AlarmTask
 
         domain_list = []
+
         if self._options['rpccorsdomain']:
             if ',' in self._options['rpccorsdomain']:
                 for domain in self._options['rpccorsdomain'].split(','):
                     domain_list.append(str(domain))
             else:
                 domain_list.append(str(self._options['rpccorsdomain']))
+
+        self._raiden_api = RaidenAPI(app_.raiden)
+
+
+        if self._options['rnsdomain']:
+            print("Registering node against Lumino explorer")
 
         self._raiden_api = RaidenAPI(app_.raiden)
 

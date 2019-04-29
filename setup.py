@@ -42,7 +42,7 @@ test_requirements = []
 version = '0.100.2-rc3'
 
 setup(
-    name='raiden',
+    name='lumino',
     description='',
     long_description=readme + '\n\n' + history,
     author='Brainbot Labs Est.',
@@ -52,7 +52,7 @@ setup(
     include_package_data=True,
     license='MIT',
     zip_safe=False,
-    keywords='raiden',
+    keywords='lumino',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -71,7 +71,7 @@ setup(
     python_requires='>=3.7',
     entry_points={
         'console_scripts': [
-            'raiden = raiden.__main__:main',
+            'lumino = raiden.__main__:main',
         ],
     },
 )

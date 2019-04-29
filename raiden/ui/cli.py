@@ -346,6 +346,16 @@ def options(func):
             ),
         ),
         option_group(
+            'Lumino  options',
+            option(
+                '--rnsdomain',
+                help='Node domain name.',
+                default='test.rsk.co',
+                type=str,
+                show_default=True,
+            ),
+        ),
+        option_group(
             'Debugging options',
             option(
                 '--unrecoverable-error-should-crash',
