@@ -349,8 +349,7 @@ def options(func):
             'Lumino  options',
             option(
                 '--rnsdomain',
-                help='Node domain name.',
-                default='test.rsk.co',
+                help='Node RNS domain name.',
                 type=str,
                 show_default=True,
             ),
