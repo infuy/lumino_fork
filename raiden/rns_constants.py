@@ -1,4 +1,4 @@
-RNS_RESOLVER_ADDRESS = "0x7557fce0bbfae81a9508ff469d481f2c72a8b5f3"
+RNS_RESOLVER_ADDRESS = "0x726ecc75d5d51356aa4d0a5b648790cc345985ed"
 RNS_RESOLVER_ABI = [{"inputs": [{"name": "rnsAddr", "type": "address"}], "payable": "false", "stateMutability": "nonpayable",
           "type": "constructor"}, {"payable": "false", "stateMutability": "nonpayable", "type": "fallback"},
          {"constant": "true", "inputs": [{"name": "node", "type": "bytes32"}, {"name": "kind", "type": "bytes32"}],

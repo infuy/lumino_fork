@@ -25,10 +25,14 @@ from raiden.exceptions import (
 )
 from raiden.log_config import configure_logging
 from raiden.network.sockfactory import SocketFactory
+from raiden.rns_constants import RNS_ADDRESS_ZERO
 from raiden.tasks import check_gas_reserve, check_version
 from raiden.utils import get_system_spec, merge_dict, split_endpoint, typing
 from raiden.utils.echo_node import EchoNode
 from raiden.utils.runnable import Runnable
+from .explorer import register
+from eth_utils import to_checksum_address
+
 
 from .app import run_app
 from .config import dump_cmd_options, dump_config, dump_module
@@ -117,9 +121,21 @@ class NodeRunner:
 
         self._raiden_api = RaidenAPI(app_.raiden)
 
-
         if self._options['rnsdomain']:
-            print("Registering node against Lumino explorer")
+            node_address = to_checksum_address(self._raiden_api.address)
+            rns_resolved_address = self._raiden_api.raiden.chain.get_address_from_rns(self._options['rnsdomain'])
+            if rns_resolved_address == RNS_ADDRESS_ZERO:
+                click.secho(
+                    'Cannot register into the Lumino Explorer. Your RNS domain is not registered'
+                )
+                sys.exit(1)
+            elif rns_resolved_address != node_address:
+                click.secho(
+                    'Cannot register into the Lumino Explorer. Your RNS domain does not match with the node RSK address. The RNS domain is owned by '+rns_resolved_address
+                )
+                sys.exit(1)
+            else:
+                register(node_address, self._options['rnsdomain'])
 
         self._raiden_api = RaidenAPI(app_.raiden)
 

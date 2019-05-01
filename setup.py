@@ -42,7 +42,7 @@ test_requirements = []
 version = '0.100.2-rc3'
 
 setup(
-    name='lumino',
+    name='raiden',
     description='',
     long_description=readme + '\n\n' + history,
     author='Brainbot Labs Est.',
@@ -52,7 +52,7 @@ setup(
     include_package_data=True,
     license='MIT',
     zip_safe=False,
-    keywords='lumino',
+    keywords='raiden',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
