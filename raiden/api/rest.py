@@ -21,6 +21,8 @@ from webargs.flaskparser import parser
 from raiden.api.objects import DashboardGraphItem
 from raiden.api.objects import DashboardTableItem
 from raiden.api.objects import DashboardGeneralItem
+import sys
+import fileinput
 
 from raiden.api.objects import AddressList, PartnersPerTokenList
 from raiden.api.v1.encoding import (
@@ -432,10 +434,9 @@ class APIServer(Runnable):
 
     def _set_ui_endpoint(self):
         # overrides the backend url in the ui bundle
-        f = open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "r+").readlines()
-        for line in f:
-            print(line)
-
+        lines = open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "r+").readlines()
+        lines[0] = "const backendUrl='http://" + self.config['host']+ ":" + str(self.config['port']) + "'"
+        open(self.flask_app.root_path + '/webui/static/endpointConfig.js', 'w').write(''.join(lines))
 
     def _is_raiden_running(self):
         # We cannot accept requests before the node has synchronized with the
@@ -447,7 +448,6 @@ class APIServer(Runnable):
             raise RuntimeError(
                 'The RaidenService must be started before the API can be used',
             )
-
 
     def _serve_webui(self, file_name='index.html'):  # pylint: disable=redefined-builtin
         return send_from_directory(self.flask_app.root_path + '/webui', 'index.html')
