@@ -9,8 +9,7 @@ import gevent
 import gevent.pool
 import structlog
 from eth_utils import encode_hex, to_checksum_address
-from flask import Flask, make_response, request, send_from_directory, url_for
-from flask.json import jsonify
+from flask import Flask, make_response, send_from_directory, url_for
 from flask_cors import CORS
 from flask_restful import Api, abort
 from gevent.pywsgi import WSGIServer
@@ -19,7 +18,6 @@ from raiden_webui import RAIDEN_WEBUI_PATH
 from raiden.rns_constants import RNS_ADDRESS_ZERO
 from raiden.utils.rns import is_rns_address
 from webargs.flaskparser import parser
-from werkzeug.exceptions import NotFound
 from raiden.api.objects import DashboardGraphItem
 from raiden.api.objects import DashboardTableItem
 from raiden.api.objects import DashboardGeneralItem
@@ -374,6 +372,8 @@ class APIServer(Runnable):
         self._api_prefix = f'/api/v{rest_api.version}'
 
         flask_app = Flask(__name__)
+        flask_app.static_url_path = ''
+        flask_app.static_folder = flask_app.root_path + '/webui/static'
         if cors_domain_list:
             CORS(flask_app, origins=cors_domain_list)
 
@@ -419,6 +419,7 @@ class APIServer(Runnable):
         self.flask_app.config['PROPAGATE_EXCEPTIONS'] = True
 
         if web_ui:
+            self._set_ui_endpoint()
             for route in ('/ui/<path:file_name>', '/ui', '/ui/', '/index.html', '/'):
                 self.flask_app.add_url_rule(
                     route,
@@ -428,6 +429,13 @@ class APIServer(Runnable):
                 )
 
         self._is_raiden_running()
+
+    def _set_ui_endpoint(self):
+        # overrides the backend url in the ui bundle
+        f = open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "r+").readlines()
+        for line in f:
+            print(line)
+
 
     def _is_raiden_running(self):
         # We cannot accept requests before the node has synchronized with the
@@ -440,40 +448,9 @@ class APIServer(Runnable):
                 'The RaidenService must be started before the API can be used',
             )
 
+
     def _serve_webui(self, file_name='index.html'):  # pylint: disable=redefined-builtin
-        try:
-            if not file_name:
-                raise NotFound
-
-            web3 = self.flask_app.config.get('WEB3_ENDPOINT')
-            if 'config.' in file_name and file_name.endswith('.json'):
-                environment_type = self.rest_api.raiden_api.raiden.config[
-                    'environment_type'
-                ].name.lower()
-                config = {
-                    'raiden': self._api_prefix,
-                    'web3': web3,
-                    'settle_timeout': self.rest_api.raiden_api.raiden.config['settle_timeout'],
-                    'reveal_timeout': self.rest_api.raiden_api.raiden.config['reveal_timeout'],
-                    'environment_type': environment_type,
-                }
-
-                # if raiden sees eth rpc endpoint as localhost, replace it by Host header,
-                # which is the hostname by which the client/browser sees/access the raiden node
-                host = request.headers.get('Host')
-                if web3 and host:
-                    web3_host, web3_port = split_endpoint(web3)
-                    if web3_host in ('localhost', '127.0.0.1'):
-                        host, _ = split_endpoint(host)
-                        web3 = f'http://{host}:{web3_port}'
-                        config['web3'] = web3
-
-                response = jsonify(config)
-            else:
-                response = send_from_directory(self.flask_app.config['WEBUI_PATH'], file_name)
-        except (NotFound, AssertionError):
-            response = send_from_directory(self.flask_app.config['WEBUI_PATH'], 'index.html')
-        return response
+        return send_from_directory(self.flask_app.root_path + '/webui', 'index.html')
 
     def _run(self):
         try:
