@@ -433,10 +433,17 @@ class APIServer(Runnable):
         self._is_raiden_running()
 
     def _set_ui_endpoint(self):
-        # overrides the backend url in the ui bundle
-        lines = open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "r+").readlines()
-        lines[0] = "const backendUrl='http://" + self.config['host']+ ":" + str(self.config['port']) + "'"
-        open(self.flask_app.root_path + '/webui/static/endpointConfig.js', 'w').write(''.join(lines))
+        # Overrides the backend url in the ui bundle
+        with open(self.flask_app.root_path + '/webui/static/endpointConfig.js') as f:
+            lines = f.readlines()
+
+        lines[0] = "const backendUrl='http://" + self.config['host'] + ":" + str(self.config['port']) + "'; \n"
+        lines[1] = "const nodeAddress = '" + to_checksum_address(self.rest_api.raiden_api.address) + "'; \n"
+        lines[2] = "const rnsDomain = '" + self.config['rnsdomain'] + "';\n"
+
+        with open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "w") as f:
+            f.writelines(lines)
+
 
     def _is_raiden_running(self):
         # We cannot accept requests before the node has synchronized with the

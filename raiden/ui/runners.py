@@ -144,7 +144,7 @@ class NodeRunner:
             (api_host, api_port) = split_endpoint(self._options['api_address'])
             api_server = APIServer(
                 rest_api,
-                config={'host': api_host, 'port': api_port},
+                config={'host': api_host, 'port': api_port, 'rnsdomain': self._options['rnsdomain']},
                 cors_domain_list=domain_list,
                 web_ui=self._options['web_ui'],
                 eth_rpc_endpoint=self._options['eth_rpc_endpoint'],
