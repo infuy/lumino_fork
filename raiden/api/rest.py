@@ -422,7 +422,7 @@ class APIServer(Runnable):
 
         if web_ui:
             self._set_ui_endpoint()
-            for route in ('/ui/<path:file_name>', '/ui', '/ui/', '/index.html', '/'):
+            for route in ('/ui/<path:file_name>', '/ui', '/ui/', '/index.html', '/', '/dashboard', '/tokens', '/payments', '/channels'):
                 self.flask_app.add_url_rule(
                     route,
                     route,
