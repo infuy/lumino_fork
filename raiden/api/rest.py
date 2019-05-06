@@ -439,7 +439,8 @@ class APIServer(Runnable):
 
         lines[0] = "const backendUrl='http://" + self.config['host'] + ":" + str(self.config['port']) + "'; \n"
         lines[1] = "const nodeAddress = '" + to_checksum_address(self.rest_api.raiden_api.address) + "'; \n"
-        lines[2] = "const rnsDomain = '" + self.config['rnsdomain'] + "';\n"
+        if self.config['rnsdomain']:
+               lines[2] = "const rnsDomain = '" + self.config['rnsdomain'] + "';\n"
 
         with open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "w") as f:
             f.writelines(lines)

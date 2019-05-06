@@ -14,7 +14,7 @@ import requests
 from click._compat import term_len
 from click.formatting import iter_rows, measure_table, wrap_text
 from pytoml import TomlError, load
-from web3.gas_strategies.time_based import fast_gas_price_strategy, medium_gas_price_strategy
+from .rsk_gas_price_strategy.rsk_gas_price_strategy import fast_gas_price_strategy, medium_gas_price_strategy
 
 from raiden.constants import Environment
 from raiden.exceptions import InvalidAddress
