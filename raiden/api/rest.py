@@ -445,7 +445,6 @@ class APIServer(Runnable):
         with open(self.flask_app.root_path + '/webui/static/endpointConfig.js', "w") as f:
             f.writelines(lines)
 
-
     def _is_raiden_running(self):
         # We cannot accept requests before the node has synchronized with the
         # blockchain, which is done during the call to RaidenService.start.
@@ -732,7 +731,7 @@ class RestAPI:
             rns_resolved_address = self.raiden_api.raiden.chain.get_address_from_rns(partner_rns_address)
             if rns_resolved_address == RNS_ADDRESS_ZERO:
                 return api_error(
-                    errors=str('Hola mundo'),
+                    errors=str('RNS domain isnt registered'),
                     status_code=HTTPStatus.PAYMENT_REQUIRED,
                 )
 

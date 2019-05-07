@@ -12,6 +12,7 @@ import gevent.monkey
 import structlog
 from gevent.event import AsyncResult
 from requests.exceptions import ConnectionError as RequestsConnectionError
+from web3.exceptions import BadFunctionCallOutput
 
 from raiden import constants, settings
 from raiden.api.rest import APIServer, RestAPI
@@ -123,19 +124,26 @@ class NodeRunner:
 
         if self._options['rnsdomain']:
             node_address = to_checksum_address(self._raiden_api.address)
-            rns_resolved_address = self._raiden_api.raiden.chain.get_address_from_rns(self._options['rnsdomain'])
-            if rns_resolved_address == RNS_ADDRESS_ZERO:
+            try:
+                rns_resolved_address = self._raiden_api.raiden.chain.get_address_from_rns(self._options['rnsdomain'])
+                if rns_resolved_address == RNS_ADDRESS_ZERO:
+                    click.secho(
+                        'Cannot register into the Lumino Explorer. Your RNS domain is not registered'
+                    )
+                    sys.exit(1)
+                elif rns_resolved_address != node_address:
+                    click.secho(
+                        'Cannot register into the Lumino Explorer. Your RNS domain does not match with the node RSK address. The RNS domain is owned by ' + rns_resolved_address
+                    )
+                    sys.exit(1)
+
+                else:
+                    register(node_address, self._options['rnsdomain'])
+            except BadFunctionCallOutput:
                 click.secho(
-                    'Cannot register into the Lumino Explorer. Your RNS domain is not registered'
+                    "Cannot register into the Lumino Explorer. Unable to interact with RNS Public Resolver"
                 )
-                sys.exit(1)
-            elif rns_resolved_address != node_address:
-                click.secho(
-                    'Cannot register into the Lumino Explorer. Your RNS domain does not match with the node RSK address. The RNS domain is owned by '+rns_resolved_address
-                )
-                sys.exit(1)
-            else:
-                register(node_address, self._options['rnsdomain'])
+
 
         self._raiden_api = RaidenAPI(app_.raiden)
 
