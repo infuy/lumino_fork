@@ -34,5 +34,3 @@ webargs
 
 git+git://github.com/infuy/web3.py@rsk-4.8.2#egg=web3
 
-#ens-namehash-py compatible
-git+git://github.com/infuy/ens-namehash-py@master#egg=ens-namehash
