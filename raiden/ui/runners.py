@@ -56,7 +56,7 @@ class NodeRunner:
 
     @property
     def welcome_string(self):
-        return f"Welcome to Raiden, version {get_system_spec()['raiden']}!"
+        return f"Welcome to RIF Lumino Payments Protocol, Version 0.1"
 
     def _startup_hook(self):
         """ Hook that is called after startup is finished. Intended for subclass usage. """
@@ -122,28 +122,26 @@ class NodeRunner:
 
         self._raiden_api = RaidenAPI(app_.raiden)
 
-        if self._options['rnsdomain']:
+        if self._options['discoverable']:
             node_address = to_checksum_address(self._raiden_api.address)
-            try:
-                rns_resolved_address = self._raiden_api.raiden.chain.get_address_from_rns(self._options['rnsdomain'])
-                if rns_resolved_address == RNS_ADDRESS_ZERO:
-                    click.secho(
-                        'Cannot register into the Lumino Explorer. Your RNS domain is not registered'
-                    )
-                    sys.exit(1)
-                elif rns_resolved_address != node_address:
-                    click.secho(
-                        'Cannot register into the Lumino Explorer. Your RNS domain does not match with the node RSK address. The RNS domain is owned by ' + rns_resolved_address
-                    )
-                    sys.exit(1)
-
-                else:
-                    register(node_address, self._options['rnsdomain'])
-            except BadFunctionCallOutput:
-                click.secho(
-                    "Cannot register into the Lumino Explorer. Unable to interact with RNS Public Resolver"
-                )
-
+            rns_domain = None
+            if self._options['rnsdomain']:
+                rns_domain  = self._options['rnsdomain']
+                try:
+                    rns_resolved_address = self._raiden_api.raiden.chain.get_address_from_rns(self._options['rnsdomain'])
+                    if rns_resolved_address == RNS_ADDRESS_ZERO:
+                        click.secho(
+                            'Cannot register into the Lumino Explorer. Your RNS domain is not registered'
+                        )
+                        sys.exit(1)
+                    elif rns_resolved_address != node_address:
+                        click.secho(
+                            'Cannot register into the Lumino Explorer. Your RNS domain does not match with the node RSK address. The RNS domain is owned by ' + rns_resolved_address
+                        )
+                        sys.exit(1)
+                except BadFunctionCallOutput:
+                    click.secho("Unable to interact with RNS Public Resolver. Your node will be registered without RNS domain.")
+            register(node_address, rns_domain)
 
         self._raiden_api = RaidenAPI(app_.raiden)
 
