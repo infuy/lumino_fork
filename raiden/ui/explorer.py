@@ -1,6 +1,6 @@
 import requests
 
-explorer_endpoint = "http://localhost:8080/"
+explorer_endpoint = "https://api.lumino.rifos.org/lumino-explorer-1.0/"
 
 
 def register(rsk_address, rns_domain):
