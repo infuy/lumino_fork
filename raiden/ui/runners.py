@@ -142,6 +142,16 @@ class NodeRunner:
                 except BadFunctionCallOutput:
                     click.secho("Unable to interact with RNS Public Resolver. Your node will be registered without RNS domain.")
             register(node_address, rns_domain)
+        else:
+            if self._options['rnsdomain']:
+                try:
+                    self._raiden_api.raiden.chain.get_address_from_rns(
+                        self._options['rnsdomain'])
+
+                except BadFunctionCallOutput:
+                    click.secho(
+                        "Unable to interact with RNS Public Resolver. Please check youre interacting with the correct contract.")
+                    sys.exit(1)
 
         self._raiden_api = RaidenAPI(app_.raiden)
 
