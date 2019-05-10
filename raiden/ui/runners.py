@@ -177,9 +177,8 @@ class NodeRunner:
                 sys.exit(1)
 
             print(
-                'The Raiden API RPC server is now running at http://{}:{}/.\n\n'
-                'See the Raiden documentation for all available endpoints at\n'
-                'http://raiden-network.readthedocs.io/en/stable/rest_api.html'.format(
+                'The Lumino API RPC server is now running at http://{}:{}/.\n\n'
+                .format(
                     api_host,
                     api_port,
                 ),
