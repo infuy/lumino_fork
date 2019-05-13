@@ -66,7 +66,7 @@ RNS_RESOLVER_ABI =[
       "anonymous": "false",
       "inputs": [
         {
-          "indexed": true,
+          "indexed": "true",
           "name": "node",
           "type": "bytes32"
         },
@@ -89,7 +89,7 @@ RNS_RESOLVER_ABI =[
       "anonymous": "false",
       "inputs": [
         {
-          "indexed": true,
+          "indexed": "true",
           "name": "node",
           "type": "bytes32"
         },
@@ -104,7 +104,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0x52d7d861f09ab3d26239d492e8968629f95e9e318cf0b73bfddc441522a15fd2"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "interfaceId",
@@ -124,7 +124,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0x01ffc9a7"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "node",
@@ -163,7 +163,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0xd5fa2b00"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "node",
@@ -202,7 +202,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0xc3d014d6"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "node",
@@ -249,7 +249,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0xd278b400"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "node",
@@ -296,7 +296,7 @@ RNS_RESOLVER_ABI =[
       "signature": "0x245d4d9a"
     },
     {
-      "constant": true,
+      "constant": "true",
       "inputs": [
         {
           "name": "node",
