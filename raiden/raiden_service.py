@@ -92,6 +92,7 @@ from raiden.utils.typing import (
 )
 from raiden.utils.upgrades import UpgradeManager
 from raiden_contracts.contract_manager import ContractManager
+from raiden.lightclient.light_client_service import LightClientService, LightClientData
 
 log = structlog.get_logger(__name__)  # pylint: disable=invalid-name
 StatusesDict = Dict[TargetAddress, Dict[PaymentID, "PaymentStatus"]]
@@ -337,6 +338,8 @@ class RaidenService(Runnable):
         self.contract_manager = ContractManager(config["contracts_path"])
         self.database_path = config["database_path"]
         self.wal = None
+        self.light_client_service = None
+        self.light_clients_data : List[LightClientData] = list()
         if self.database_path != ":memory:":
             database_dir = os.path.dirname(config["database_path"])
             os.makedirs(database_dir, exist_ok=True)
@@ -470,6 +473,10 @@ class RaidenService(Runnable):
                     f"{configured_registry}, which conflicts with the current known "
                     f"smart contracts {known_registries}"
                 )
+
+        # Instance the LightClientService
+        self.light_client_service = LightClientService(self.wal)
+        self.light_clients_data = self.light_client_service.get_light_clients_data()
 
         # Restore the current snapshot group
         state_change_qty = self.wal.storage.count_state_changes()

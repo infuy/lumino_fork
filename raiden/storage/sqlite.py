@@ -74,7 +74,7 @@ class SQLiteStorage:
         # https://sqlite.org/atomiccommit.html#_exclusive_access_mode
         # https://sqlite.org/pragma.html#pragma_locking_mode
 
-        conn.execute("PRAGMA locking_mode=EXCLUSIVE")
+        conn.execute("PRAGMA locking_mode=NORMAL")
         
         # Keep the journal around and skip inode updates.
         # References:
@@ -181,6 +181,29 @@ class SQLiteStorage:
                 FROM token_action WHERE token = ?;
             """,
             (token,)
+        )
+
+        return cursor.fetchone()
+
+    def query_light_clients(self):
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT * FROM light_client;
+            """
+        )
+
+        return cursor.fetchall()
+
+    def query_light_client(self, hex_address):
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT * FROM light_client where address = ?;
+            """,
+            hex_address
         )
 
         return cursor.fetchone()
@@ -1048,3 +1071,7 @@ class SerializedSQLiteStorage(SQLiteStorage):
     def get_events(self, limit: int = None, offset: int = None):
         events = super().get_events(limit, offset)
         return [self.serializer.deserialize(event) for event in events]
+
+
+
+
