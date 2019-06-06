@@ -302,8 +302,9 @@ class RaidenService(Runnable):
         raiden_event_handler,
         message_handler,
         config,
+        light_client_service: LightClientService,
         discovery=None,
-        user_deposit=None,
+        user_deposit=None
     ):
         super().__init__()
         self.tokennetworkids_to_connectionmanagers: ConnectionManagerDict = dict()
@@ -338,8 +339,7 @@ class RaidenService(Runnable):
         self.contract_manager = ContractManager(config["contracts_path"])
         self.database_path = config["database_path"]
         self.wal = None
-        self.light_client_service = None
-        self.light_clients_data : List[LightClientData] = list()
+        self.light_client_service = light_client_service
         if self.database_path != ":memory:":
             database_dir = os.path.dirname(config["database_path"])
             os.makedirs(database_dir, exist_ok=True)
@@ -474,10 +474,6 @@ class RaidenService(Runnable):
                     f"smart contracts {known_registries}"
                 )
 
-        # Instance the LightClientService
-        self.light_client_service = LightClientService(self.wal)
-        self.light_clients_data = self.light_client_service.get_light_clients_data()
-
         # Restore the current snapshot group
         state_change_qty = self.wal.storage.count_state_changes()
         self.snapshot_group = state_change_qty // SNAPSHOT_STATE_CHANGES_COUNT
@@ -510,6 +506,9 @@ class RaidenService(Runnable):
 
         if self.config["transport_type"] == "udp":
             endpoint_registration_greenlet.get()  # re-raise if exception occurred
+
+        # Get the light clients data for transport start
+        self.light_clients_data = self.light_client_service.get_light_clients_data()
 
         # Start the side-effects:
         # - React to blockchain events
@@ -605,6 +604,7 @@ class RaidenService(Runnable):
             raiden_service=self,
             message_handler=self.message_handler,
             prev_auth_data=chain_state.last_transport_authdata,
+
         )
 
         for neighbour in views.all_neighbour_nodes(chain_state):

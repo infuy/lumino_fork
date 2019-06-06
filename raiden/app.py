@@ -32,6 +32,8 @@ from raiden.settings import (
 from raiden.utils import pex, typing
 from raiden.utils.typing import Address, Any, Dict
 from raiden_contracts.contract_manager import contracts_precompiled_path
+from raiden.lightclient.light_client_service import LightClientService
+
 
 log = structlog.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -94,6 +96,7 @@ class App:  # pylint: disable=too-few-public-methods
         transport,
         raiden_event_handler,
         message_handler,
+        light_client_service: LightClientService,
         discovery: Discovery = None,
         user_deposit: UserDeposit = None,
     ):
@@ -108,6 +111,7 @@ class App:  # pylint: disable=too-few-public-methods
             raiden_event_handler=raiden_event_handler,
             message_handler=message_handler,
             config=config,
+            light_client_service=light_client_service,
             discovery=discovery,
             user_deposit=user_deposit,
         )

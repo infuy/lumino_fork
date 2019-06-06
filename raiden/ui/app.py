@@ -51,11 +51,14 @@ from raiden.utils.cli import get_matrix_servers
 from raiden.utils.typing import Address, Optional, PrivateKey, Tuple
 from raiden_contracts.constants import ID_TO_NETWORKNAME
 from raiden_contracts.contract_manager import ContractManager
+from raiden.lightclient.light_client_service import LightClientService
+from raiden.lightclient.light_client_service import LightClientData
+from raiden.storage import serialize, sqlite
 
 log = structlog.get_logger(__name__)
 
 
-def _setup_matrix(config):
+def _setup_matrix(config, light_client_service : LightClientService):
     if config["transport"]["matrix"].get("available_servers") is None:
         # fetch list of known servers from raiden-network/raiden-tranport repo
         available_servers_url = DEFAULT_MATRIX_KNOWN_SERVERS[config["environment_type"]]
@@ -74,7 +77,7 @@ def _setup_matrix(config):
         config["transport"]["matrix"]["global_rooms"].append(MONITORING_BROADCASTING_ROOM)
 
     try:
-        transport = MatrixTransport(config["transport"]["matrix"])
+        transport = MatrixTransport(config["transport"]["matrix"], light_client_service)
     except RaidenError as ex:
         click.secho(f"FATAL: {ex}", fg="red")
         sys.exit(1)
@@ -256,6 +259,14 @@ def run_app(
     )
     config["database_path"] = database_path
 
+    storage = sqlite.SerializedSQLiteStorage(
+        database_path=database_path, serializer=serialize.JSONSerializer()
+    )
+
+    # Get an instance of LCS
+    light_client_service = LightClientService(storage)
+    light_client_service.fetch_light_clients_data()
+
     print(
         "\nYou are connected to the '{}' network and the DB path is: {}".format(
             ID_TO_NETWORKNAME.get(network_id, network_id), database_path
@@ -268,7 +279,7 @@ def run_app(
             config, blockchain_service, address, contracts, endpoint_registry_contract_address
         )
     elif transport == "matrix":
-        transport = _setup_matrix(config)
+        transport = _setup_matrix(config, light_client_service)
     else:
         raise RuntimeError(f'Unknown transport type "{transport}" given')
 
@@ -278,7 +289,7 @@ def run_app(
 
     try:
         start_block = 0
-        if "TokenNetworkRegistry" in contracts:
+        if "TokenNetworkResgistry" in contracts:
             start_block = contracts["TokenNetworkRegistry"]["block_number"]
 
         raiden_app = App(
@@ -292,8 +303,9 @@ def run_app(
             transport=transport,
             raiden_event_handler=raiden_event_handler,
             message_handler=message_handler,
+            light_client_service=light_client_service,
             discovery=discovery,
-            user_deposit=proxies.user_deposit,
+            user_deposit=proxies.user_deposit
         )
     except RaidenError as e:
         click.secho(f"FATAL: {e}", fg="red")

@@ -73,6 +73,7 @@ from raiden.utils.typing import (
     Union,
     cast,
 )
+from raiden.lightclient.light_client_service import LightClientService
 
 log = structlog.get_logger(__name__)
 
@@ -274,10 +275,13 @@ class MatrixTransport(Runnable):
     _room_sep = "_"
     log = log
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, light_client_service : LightClientService):
         super().__init__()
         self._config = config
         self._raiden_service: Optional[RaidenService] = None
+        self._light_client_service = light_client_service
+
+        assert light_client_service is not None
 
         if config["server"] == "auto":
             available_servers = config["available_servers"]
@@ -358,6 +362,9 @@ class MatrixTransport(Runnable):
             prev_user_id, _, prev_access_token = prev_auth_data.partition("/")
         else:
             prev_user_id = prev_access_token = None
+
+        data = self._light_client_service.light_clients_data
+        print(data)
 
         login_or_register(
             client=self._client,
